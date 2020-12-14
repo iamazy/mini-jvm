@@ -3,7 +3,7 @@ use crate::field::Field;
 use crate::method::Method;
 use crate::attribute::Attribute;
 
-#[derive(Debug,)]
+#[derive(Debug, Clone)]
 pub struct ClassFile {
     pub magic: u32,
     pub minor_version: u16,
