@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use std::rc::Rc;
 use crate::FromToBytes;
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
@@ -81,6 +80,7 @@ impl FromToBytes<Attribute> for Attribute {
     fn from_buf(buf: &mut BytesMut) -> Result<Attribute, Error> {
         let attribute_name_index = buf.get_u16();
         let attribute_length = buf.get_u32();
+        unimplemented!()
     }
 
     fn length(&self) -> usize {
