@@ -1,4 +1,4 @@
-use crate::{FromToBytes, read_string};
+use crate::{FromToBytes, read_string, write_string};
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 use crate::ops;
@@ -52,8 +52,86 @@ pub enum Constant {
 }
 
 impl FromToBytes<Constant> for Constant {
-    fn to_buf(&self, buf: &mut impl BufMut) -> usize {
-        unimplemented!()
+    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+        let mut len: usize = 1;
+        match self {
+            Constant::Class { name_index} => {
+                buf.put_u8(ops::CONSTANT_CLASS_TAG);
+                buf.put_u16(*name_index);
+                len += 2;
+            },
+            Constant::FieldRef { class_index, name_and_type_index} => {
+                buf.put_u8(ops::CONSTANT_FIELD_REF_TAG);
+                buf.put_u16(*class_index);
+                buf.put_u16(*name_and_type_index);
+                len += 4;
+            },
+            Constant::MethodRef {class_index, name_and_type_index} => {
+                buf.put_u8(ops::CONSTANT_METHOD_REF_TAG);
+                buf.put_u16(*class_index);
+                buf.put_u16(*name_and_type_index);
+                len += 4;
+            }
+            Constant::InterfaceMethodRef { class_index, name_and_type_index} => {
+                buf.put_u8(ops::CONSTANT_INTERFACE_METHOD_REF_TAG);
+                buf.put_u16(*class_index);
+                buf.put_u16(*name_and_type_index);
+                len += 4;
+            },
+            Constant::String { string_index} => {
+                buf.put_u8(ops::CONSTANT_STRING_TAG);
+                buf.put_u16(*string_index);
+                len += 2;
+            }
+            Constant::Integer(int) => {
+                buf.put_u8(ops::CONSTANT_INTEGER_TAG);
+                buf.put_i32(*int);
+                len += 4;
+            }
+            Constant::Float(float) => {
+                buf.put_u8(ops::CONSTANT_FLOAT_TAG);
+                buf.put_f32(*float);
+                len += 4;
+            }
+            Constant::Long(long) => {
+                buf.put_u8(ops::CONSTANT_LONG_TAG);
+                buf.put_i64(*long);
+                len += 8;
+            }
+            Constant::Double(double) => {
+                buf.put_u8(ops::CONSTANT_DOUBLE_TAG);
+                buf.put_f64(*double);
+                len += 8;
+            }
+            Constant::NameAndType {name_index, descriptor_index} => {
+                buf.put_u8(ops::CONSTANT_NAME_AND_TYPE_TAG);
+                buf.put_u16(*name_index);
+                buf.put_u16(*descriptor_index);
+                len += 4;
+            }
+            Constant::Utf8(string) => {
+                buf.put_u8(ops::CONSTANT_UTF8_TAG);
+                len += write_string((*string).clone(), buf);
+            }
+            Constant::MethodHandle {reference_kind, reference_index} => {
+                buf.put_u8(ops::CONSTANT_METHOD_HANDLE_TAG);
+                buf.put_u8(*reference_kind);
+                buf.put_u16(*reference_index);
+                len += 3;
+            }
+            Constant::MethodType { descriptor_index} => {
+                buf.put_u8(ops::CONSTANT_METHOD_TYPE_TAG);
+                buf.put_u16(*descriptor_index);
+                len += 2;
+            }
+            Constant::InvokeDynamic {bootstrap_method_attr_index, name_and_type_index} => {
+                buf.put_u8(ops::CONSTANT_INVOKE_DYNAMIC_TAG);
+                buf.put_u16(*bootstrap_method_attr_index);
+                buf.put_u16(*name_and_type_index);
+                len += 4;
+            }
+        }
+        Ok(len)
     }
 
     fn from_buf(buf: &mut BytesMut) -> Result<Constant, Error> {
@@ -71,12 +149,12 @@ impl FromToBytes<Constant> for Constant {
             ops::CONSTANT_METHOD_REF_TAG => {
                 let class_index = buf.get_u16();
                 let name_and_type_index = buf.get_u16();
-                Ok(Constant::FieldRef { class_index, name_and_type_index })
+                Ok(Constant::MethodRef { class_index, name_and_type_index })
             },
             ops::CONSTANT_INTERFACE_METHOD_REF_TAG => {
                 let class_index = buf.get_u16();
                 let name_and_type_index = buf.get_u16();
-                Ok(Constant::FieldRef { class_index, name_and_type_index })
+                Ok(Constant::InterfaceMethodRef { class_index, name_and_type_index })
             },
             ops::CONSTANT_STRING_TAG => {
                 let string_index = buf.get_u16();

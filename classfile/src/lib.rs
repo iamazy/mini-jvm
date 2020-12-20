@@ -37,7 +37,7 @@ pub fn read_bytes(buf: &mut BytesMut) -> Result<Bytes, Error> {
 }
 
 pub trait FromToBytes<R> {
-    fn to_buf(&self, buf: &mut impl BufMut) -> usize;
+    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error>;
     fn from_buf(buf: &mut BytesMut) -> Result<R, Error>;
     fn length(&self) -> usize;
 }

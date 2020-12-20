@@ -11,3 +11,5 @@ nom = "6"
 bytes = { version = "0.6", features = ["serde"] }
 bitflags = "1.2"
 byteorder = "1"
+log = "0.4"
+env_logger = "0.8"
