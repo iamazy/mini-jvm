@@ -3,84 +3,636 @@
 use crate::FromToBytes;
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
+use crate::constant::{Constant, get_utf8};
 
 #[derive(Debug, Clone)]
 pub enum Attribute {
     ConstantValue {
+        attribute_name_index: u16,
+        attribute_length: u32,
         constant_value_index: u16
     },
-    Code(CodeAttribute),
+    Code {
+        attribute_name_index: u16,
+        attribute_length: u32,
+        code: CodeAttribute
+    },
     StackMapTable {
+        attribute_name_index: u16,
+        attribute_length: u32,
         entries: Vec<StackMap>
     },
     Exceptions {
+        attribute_name_index: u16,
+        attribute_length: u32,
         exception_index_table: Vec<u16>
     },
     InnerClasses {
+        attribute_name_index: u16,
+        attribute_length: u32,
         classes: Vec<InnerClass>
     },
     EnclosingMethod {
+        attribute_name_index: u16,
+        attribute_length: u32,
         class_index: u16,
         method_index: u16,
     },
-    Synthetic,
+    Synthetic {
+        attribute_name_index: u16,
+        attribute_length: u32,
+    },
     Signature {
+        attribute_name_index: u16,
+        attribute_length: u32,
         signature_index: u16
     },
     SourceFile {
+        attribute_name_index: u16,
+        attribute_length: u32,
         sourcefile_index: u16
     },
     SourceDebugExtension {
+        attribute_name_index: u16,
+        attribute_length: u32,
         debug_extension: Vec<u8>
     },
     LineNumberTable {
+        attribute_name_index: u16,
+        attribute_length: u32,
         line_number_table: Vec<LineNumber>
     },
     LocalVariableTable {
+        attribute_name_index: u16,
+        attribute_length: u32,
         local_variable_table: Vec<LocalVariable>
     },
     LocalVariableTypeTable {
+        attribute_name_index: u16,
+        attribute_length: u32,
         local_variable_type_table: Vec<LocalVariableType>
     },
-    Deprecated,
+    Deprecated {
+        attribute_name_index: u16,
+        attribute_length: u32,
+    },
     RuntimeVisibleAnnotations {
+        attribute_name_index: u16,
+        attribute_length: u32,
         annotations: Vec<Annotation>
     },
     RuntimeInvisibleAnnotations {
+        attribute_name_index: u16,
+        attribute_length: u32,
         annotations: Vec<Annotation>
     },
     RuntimeVisibleParameterAnnotations {
+        attribute_name_index: u16,
+        attribute_length: u32,
         parameter_annotations: Vec<ParameterAnnotation>
     },
     RuntimeInvisibleParameterAnnotations {
+        attribute_name_index: u16,
+        attribute_length: u32,
         parameter_annotations: Vec<ParameterAnnotation>
     },
     RuntimeVisibleTypeAnnotations {
+        attribute_name_index: u16,
+        attribute_length: u32,
         annotations: Vec<TypeAnnotation>
     },
     RuntimeInvisibleTypeAnnotations {
+        attribute_name_index: u16,
+        attribute_length: u32,
         annotations: Vec<TypeAnnotation>
     },
     AnnotationDefault {
+        attribute_name_index: u16,
+        attribute_length: u32,
         default_value: ElementValue
     },
     BootstrapMethods {
+        attribute_name_index: u16,
+        attribute_length: u32,
         bootstrap_methods: Vec<BootstrapMethod>
     },
     MethodParameters {
+        attribute_name_index: u16,
+        attribute_length: u32,
         parameters: Vec<MethodParameter>
     },
 }
 
-impl FromToBytes<Attribute> for Attribute {
-    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
-        unimplemented!()
+impl Attribute {
+    pub fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+        let mut len: usize = 0;
+        match self {
+            Attribute::ConstantValue {
+                attribute_name_index,
+                attribute_length,
+                constant_value_index
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                buf.put_u16(*constant_value_index);
+                len += 8;
+            }
+            Attribute::Code {
+                attribute_name_index,
+                attribute_length,
+                code
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                len += code.to_buf(buf)?;
+            }
+            Attribute::StackMapTable {
+                attribute_name_index,
+                attribute_length,
+                entries
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for stack_map in entries {
+                    len += stack_map.to_buf(buf)?;
+                }
+            }
+            Attribute::Exceptions {
+                attribute_name_index,
+                attribute_length,
+                exception_index_table
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for exception_index in exception_index_table {
+                    buf.put_u16(*exception_index);
+                    len += 2;
+                }
+            }
+            Attribute::InnerClasses {
+                attribute_name_index,
+                attribute_length,
+                classes
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for class in classes {
+                    len += class.to_buf(buf)?;
+                }
+            }
+            Attribute::EnclosingMethod {
+                attribute_name_index,
+                attribute_length,
+                class_index,
+                method_index
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                buf.put_u16(*class_index);
+                buf.put_u16(*method_index);
+                len += 10;
+            }
+            Attribute::Synthetic {
+                attribute_name_index,
+                attribute_length
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+            }
+            Attribute::Signature {
+                attribute_name_index,
+                attribute_length,
+                signature_index
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                buf.put_u16(*signature_index);
+                len += 8;
+            }
+            Attribute::SourceFile {
+                attribute_name_index,
+                attribute_length,
+                sourcefile_index
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                buf.put_u16(*sourcefile_index);
+                len += 8;
+            }
+            Attribute::SourceDebugExtension {
+                attribute_name_index,
+                attribute_length,
+                debug_extension
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for debug_info in debug_extension {
+                    buf.put_u8(*debug_info);
+                    len += 1;
+                }
+            }
+            Attribute::LineNumberTable {
+                attribute_name_index,
+                attribute_length,
+                line_number_table
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for line_number in line_number_table {
+                    len += line_number.to_buf(buf)?;
+                }
+            }
+            Attribute::LocalVariableTable {
+                attribute_name_index,
+                attribute_length,
+                local_variable_table
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for local_variable in local_variable_table {
+                    len += local_variable.to_buf(buf)?;
+                }
+            }
+            Attribute::LocalVariableTypeTable {
+                attribute_name_index,
+                attribute_length,
+                local_variable_type_table
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for local_variable_type in local_variable_type_table {
+                    len += local_variable_type.to_buf(buf)?;
+                }
+            }
+            Attribute::Deprecated {
+                attribute_name_index,
+                attribute_length
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+            }
+            Attribute::RuntimeVisibleAnnotations {
+                attribute_name_index,
+                attribute_length,
+                annotations
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for annotation in annotations {
+                    len += annotation.to_buf(buf)?;
+                }
+            }
+            Attribute::RuntimeInvisibleAnnotations {
+                attribute_name_index,
+                attribute_length,
+                annotations
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for annotation in annotations {
+                    len += annotation.to_buf(buf)?;
+                }
+            }
+            Attribute::RuntimeVisibleParameterAnnotations {
+                attribute_name_index,
+                attribute_length,
+                parameter_annotations
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for parameter_annotation in parameter_annotations {
+                    len += parameter_annotation.to_buf(buf)?;
+                }
+            }
+            Attribute::RuntimeInvisibleParameterAnnotations {
+                attribute_name_index,
+                attribute_length,
+                parameter_annotations
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for parameter_annotation in parameter_annotations {
+                    len += parameter_annotation.to_buf(buf)?;
+                }
+            }
+            Attribute::RuntimeVisibleTypeAnnotations {
+                attribute_name_index,
+                attribute_length,
+                annotations
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for annotation in annotations {
+                    len += annotation.to_buf(buf)?;
+                }
+            }
+            Attribute::RuntimeInvisibleTypeAnnotations {
+                attribute_name_index,
+                attribute_length,
+                annotations
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for annotation in annotations {
+                    len += annotation.to_buf(buf)?;
+                }
+            }
+            Attribute::AnnotationDefault {
+                attribute_name_index,
+                attribute_length,
+                default_value
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                len += default_value.to_buf(buf)?;
+            }
+            Attribute::BootstrapMethods {
+                attribute_name_index,
+                attribute_length,
+                bootstrap_methods
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for bootstrap_method in bootstrap_methods {
+                    len += bootstrap_method.to_buf(buf)?;
+                }
+            }
+            Attribute::MethodParameters {
+                attribute_name_index,
+                attribute_length,
+                parameters
+            } => {
+                buf.put_u16(*attribute_name_index);
+                buf.put_u32(*attribute_length);
+                len += 6;
+                for parameter in parameters {
+                    len += parameter.to_buf(buf)?;
+                }
+            }
+        }
+        Ok(len)
     }
 
-    fn from_buf(buf: &mut BytesMut) -> Result<Attribute, Error> {
+    pub fn from_buf(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<Attribute, Error> {
         let attribute_name_index = buf.get_u16();
         let attribute_length = buf.get_u32();
-        unimplemented!()
+        let attribute_name = get_utf8(constant_pool, attribute_name_index as usize).unwrap();
+        return match attribute_name.as_str() {
+            "ConstantValue" => {
+                let constant_value_index = buf.get_u16();
+                Ok(Attribute::ConstantValue {
+                    attribute_name_index,
+                    attribute_length,
+                    constant_value_index
+                })
+            },
+            "Code" => {
+                Ok(Attribute::Code {
+                    attribute_name_index,
+                    attribute_length,
+                    code: CodeAttribute::from_buf(buf, constant_pool) ?
+                })
+            },
+            "StackMapTable" => {
+                let number_of_entries = buf.get_u16();
+                let mut entries: Vec<StackMap> = vec![];
+                for _ in 0..number_of_entries {
+                    entries.push(StackMap::from_buf(buf)?);
+                }
+                Ok(Attribute::StackMapTable {
+                    attribute_name_index,
+                    attribute_length,
+                    entries
+                })
+            },
+            "Exceptions" => {
+                let number_of_exceptions = buf.get_u16();
+                let mut exception_index_table: Vec<u16> = vec![];
+                for _ in 0..number_of_exceptions {
+                    exception_index_table.push(buf.get_u16());
+                }
+                Ok(Attribute::Exceptions {
+                    attribute_name_index,
+                    attribute_length,
+                    exception_index_table
+                })
+            },
+            "InnerClass" => {
+                let number_of_classes = buf.get_u16();
+                let mut classes: Vec<InnerClass> = vec![];
+                for _ in 0..number_of_classes {
+                    classes.push(InnerClass::from_buf(buf)?);
+                }
+                Ok(Attribute::InnerClasses {
+                    attribute_name_index,
+                    attribute_length,
+                    classes
+                })
+            },
+            "EnclosingMethod" => {
+                let class_index = buf.get_u16();
+                let method_index = buf.get_u16();
+                Ok(Attribute::EnclosingMethod {
+                    attribute_name_index,
+                    attribute_length,
+                    class_index,
+                    method_index
+                })
+            },
+            "Synthetic" => Ok(Attribute::Synthetic {
+                attribute_name_index,
+                attribute_length
+            }),
+            "Signature" => {
+                let signature_index = buf.get_u16();
+                Ok(Attribute::Signature {
+                    attribute_name_index,
+                    attribute_length,
+                    signature_index
+                })
+            },
+            "SourceFile" => {
+                let sourcefile_index = buf.get_u16();
+                Ok(Attribute::SourceFile {
+                    attribute_name_index,
+                    attribute_length,
+                    sourcefile_index
+                })
+            },
+            "SourceDebugExtension" => {
+                let mut debug_extension: Vec<u8> = vec![];
+                for _ in 0..attribute_length {
+                    debug_extension.push(buf.get_u8());
+                }
+                Ok(Attribute::SourceDebugExtension {
+                    attribute_name_index,
+                    attribute_length,
+                    debug_extension
+                })
+            },
+            "LineNumberTable" => {
+                let line_number_table_length = buf.get_u16();
+                let mut line_number_table: Vec<LineNumber> = vec![];
+                for _ in 0..line_number_table_length {
+                    line_number_table.push(LineNumber::from_buf(buf)?);
+                }
+                Ok(Attribute::LineNumberTable {
+                    attribute_name_index,
+                    attribute_length,
+                    line_number_table
+                })
+            },
+            "LocalVariableTable" => {
+                let local_variable_table_length = buf.get_u16();
+                let mut local_variable_table: Vec<LocalVariable> = vec![];
+                for _ in 0..local_variable_table_length {
+                    local_variable_table.push(LocalVariable::from_buf(buf)?);
+                }
+                Ok(Attribute::LocalVariableTable {
+                    attribute_name_index,
+                    attribute_length,
+                    local_variable_table
+                })
+            },
+            "LocalVariableTypeTable" => {
+                let local_variable_type_table_length = buf.get_u16();
+                let mut local_variable_type_table: Vec<LocalVariableType> = vec![];
+                for _ in 0..local_variable_type_table_length {
+                    local_variable_type_table.push(LocalVariableType::from_buf(buf)?);
+                }
+                Ok(Attribute::LocalVariableTypeTable {
+                    attribute_name_index,
+                    attribute_length,
+                    local_variable_type_table
+                })
+            },
+            "Deprecated" => Ok(Attribute::Deprecated {
+                attribute_name_index,
+                attribute_length
+            }),
+            "RuntimeVisibleAnnotations" => {
+                let num_annotations = buf.get_u16();
+                let mut annotations: Vec<Annotation> = vec![];
+                for _ in 0..num_annotations {
+                    annotations.push(Annotation::from_buf(buf)?);
+                }
+                Ok(Attribute::RuntimeVisibleAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    annotations
+                })
+            },
+            "RuntimeInvisibleAnnotations" => {
+                let num_annotations = buf.get_u16();
+                let mut annotations: Vec<Annotation> = vec![];
+                for _ in 0..num_annotations {
+                    annotations.push(Annotation::from_buf(buf)?);
+                }
+                Ok(Attribute::RuntimeInvisibleAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    annotations
+                })
+            }
+            "RuntimeVisibleParameterAnnotations" => {
+                let num_parameters = buf.get_u8();
+                let mut parameter_annotations: Vec<ParameterAnnotation> = vec![];
+                for _ in 0..num_parameters {
+                    parameter_annotations.push(ParameterAnnotation::from_buf(buf)?);
+                }
+                Ok(Attribute::RuntimeVisibleParameterAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    parameter_annotations
+                })
+            },
+            "RuntimeInvisibleParameterAnnotations" => {
+                let num_parameters = buf.get_u8();
+                let mut parameter_annotations: Vec<ParameterAnnotation> = vec![];
+                for _ in 0..num_parameters {
+                    parameter_annotations.push(ParameterAnnotation::from_buf(buf)?);
+                }
+                Ok(Attribute::RuntimeInvisibleParameterAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    parameter_annotations
+                })
+            },
+            "RuntimeVisibleTypeAnnotations" => {
+                let num_annotations = buf.get_u8();
+                let mut type_annotations: Vec<TypeAnnotation> = vec![];
+                for _ in 0..num_annotations {
+                    type_annotations.push(TypeAnnotation::from_buf(buf)?);
+                }
+                Ok(Attribute::RuntimeVisibleTypeAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    annotations: type_annotations
+                })
+            },
+            "RuntimeInvisibleTypeAnnotations" => {
+                let num_annotations = buf.get_u8();
+                let mut type_annotations: Vec<TypeAnnotation> = vec![];
+                for _ in 0..num_annotations {
+                    type_annotations.push(TypeAnnotation::from_buf(buf)?);
+                }
+                Ok(Attribute::RuntimeInvisibleTypeAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    annotations: type_annotations
+                })
+            },
+            "AnnotationDefault" => {
+                Ok(Attribute::AnnotationDefault {
+                    attribute_name_index,
+                    attribute_length,
+                    default_value: ElementValue::from_buf(buf)?
+                })
+            },
+            "BootstrapMethods" => {
+                let num_bootstrap_methods = buf.get_u16();
+                let mut bootstrap_methods: Vec<BootstrapMethod> = vec![];
+                for _ in 0..num_bootstrap_methods {
+                    bootstrap_methods.push(BootstrapMethod::from_buf(buf)?);
+                }
+                Ok(Attribute::BootstrapMethods {
+                    attribute_name_index,
+                    attribute_length,
+                    bootstrap_methods
+                })
+            },
+            "MethodParameters" => {
+                let parameters_count = buf.get_u8();
+                let mut parameters: Vec<MethodParameter> = vec![];
+                for _ in 0..parameters_count {
+                    parameters.push(MethodParameter::from_buf(buf)?);
+                }
+                Ok(Attribute::MethodParameters {
+                    attribute_name_index,
+                    attribute_length,
+                    parameters
+                })
+            },
+            _ => Err(Error::InvalidAttributeName((*attribute_name).clone()))
+        }
     }
 
     fn length(&self) -> usize {
@@ -97,7 +649,7 @@ pub struct CodeAttribute {
     pub attributes: Vec<Attribute>,
 }
 
-impl FromToBytes<CodeAttribute> for CodeAttribute {
+impl CodeAttribute {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u16(self.max_stack);
@@ -121,7 +673,7 @@ impl FromToBytes<CodeAttribute> for CodeAttribute {
         Ok(len)
     }
 
-    fn from_buf(buf: &mut BytesMut) -> Result<CodeAttribute, Error> {
+    fn from_buf(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<CodeAttribute, Error> {
         let max_stack = buf.get_u16();
         let max_locals = buf.get_u16();
         let code_length = buf.get_u32();
@@ -137,7 +689,7 @@ impl FromToBytes<CodeAttribute> for CodeAttribute {
         let attributes_count = buf.get_u16();
         let mut attributes: Vec<Attribute> = vec![];
         for _ in 0..attributes_count {
-            attributes.push(Attribute::from_buf(buf)?);
+            attributes.push(Attribute::from_buf(buf, constant_pool)?);
         }
         Ok(CodeAttribute {
             max_stack,
@@ -331,7 +883,7 @@ impl FromToBytes<StackMap> for StackMap {
             }
             252..=254 => {
                 let offset_delta = buf.get_u16();
-                let frame_type = frame_type as usize;
+                let frame_type = frame_type;
                 let num_verification_type_info = frame_type - 251;
                 let mut locals: Vec<VerificationTypeInfo> = vec![];
                 for _ in 0..num_verification_type_info {
@@ -342,13 +894,13 @@ impl FromToBytes<StackMap> for StackMap {
             }
             255 => {
                 let offset_delta = buf.get_u16();
-                let number_of_locals = buf.get_u16() as usize;
+                let number_of_locals = buf.get_u16();
                 let mut locals: Vec<VerificationTypeInfo> = vec![];
                 for _ in 0..number_of_locals {
                     let local = VerificationTypeInfo::from_buf(buf)?;
                     locals.push(local);
                 }
-                let number_of_stack_items = buf.get_u16() as usize;
+                let number_of_stack_items = buf.get_u16();
                 let mut stack: Vec<VerificationTypeInfo> = vec![];
                 for _ in 0..number_of_stack_items {
                     let stack_item = VerificationTypeInfo::from_buf(buf)?;
@@ -652,7 +1204,7 @@ impl FromToBytes<Annotation> for Annotation {
 
     fn from_buf(buf: &mut BytesMut) -> Result<Annotation, Error> {
         let type_index = buf.get_u16();
-        let num_element_value_pairs = buf.get_u16() as usize;
+        let num_element_value_pairs = buf.get_u16();
         let mut element_value_pairs: Vec<(u16, ElementValue)> = vec![];
         for _ in 0..num_element_value_pairs {
             let element_name_index = buf.get_u16();
@@ -793,7 +1345,7 @@ impl FromToBytes<ElementValue> for ElementValue {
                 value = Element::AnnotationValue(Annotation::from_buf(buf)?);
             }
             '[' => {
-                let num_values = buf.get_u16() as usize;
+                let num_values = buf.get_u16();
                 let mut values: Vec<ElementValue> = vec![];
                 for _ in 0..num_values {
                     values.push(ElementValue::from_buf(buf)?);
@@ -817,6 +1369,32 @@ impl FromToBytes<ElementValue> for ElementValue {
 pub struct ParameterAnnotation {
     annotations: Vec<Annotation>
 }
+
+impl FromToBytes<ParameterAnnotation> for ParameterAnnotation {
+    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+        let mut len: usize = 0;
+        buf.put_u16(self.annotations.len() as u16);
+        for annotation in &self.annotations {
+            len += annotation.to_buf(buf)?;
+        }
+        Ok(len)
+    }
+
+    fn from_buf(buf: &mut BytesMut) -> Result<ParameterAnnotation, Error> {
+        let num_annotations = buf.get_u16();
+        let mut annotations: Vec<Annotation> = vec![];
+        for _ in 0..num_annotations {
+            annotations.push(Annotation::from_buf(buf)?);
+        }
+        Ok(ParameterAnnotation { annotations })
+    }
+
+    fn length(&self) -> usize {
+        unimplemented!()
+    }
+}
+
+
 
 ///```jvm
 /// type_annotation {
@@ -1016,7 +1594,7 @@ impl FromToBytes<TypeAnnotation> for TypeAnnotation {
                 target_info = TargetInfo::ThrowTarget(throws_type_index);
             }
             0x40 | 0x41 => {
-                let table_length = buf.get_u16() as usize;
+                let table_length = buf.get_u16();
                 let mut local_vars: Vec<LocalVar> = vec![];
                 for _ in 0..table_length {
                     let local_var = match LocalVar::from_buf(buf) {
@@ -1101,7 +1679,7 @@ impl FromToBytes<TypePath> for TypePath {
     }
 
     fn from_buf(buf: &mut BytesMut) -> Result<TypePath, Error> {
-        let path_length = buf.get_u8() as usize;
+        let path_length = buf.get_u8();
         let mut path: Vec<(u8, u8)> = vec![];
         for _ in 0..path_length {
             let type_path_kind = buf.get_u8();
@@ -1168,7 +1746,7 @@ impl FromToBytes<BootstrapMethod> for BootstrapMethod {
 
     fn from_buf(buf: &mut BytesMut) -> Result<BootstrapMethod, Error> {
         let bootstrap_method_ref = buf.get_u16();
-        let num_bootstrap_arguments = buf.get_u16() as usize;
+        let num_bootstrap_arguments = buf.get_u16();
         let mut bootstrap_arguments: Vec<u16> = vec![];
         for _ in 0..num_bootstrap_arguments {
             bootstrap_arguments.push(buf.get_u16());

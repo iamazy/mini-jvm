@@ -13,6 +13,9 @@ pub enum Error {
 
     InvalidTargetInfo,
 
+    // Constant
+    MismatchConstantType,
+
     // element_value
     InvalidElementValueTag(char),
 
@@ -24,5 +27,8 @@ pub enum Error {
     // StackFrame
     InvalidFrameType,
 
-    MismatchFrameType(u8, StackMapFrame)
+    MismatchFrameType(u8, StackMapFrame),
+
+    // Attribute
+    InvalidAttributeName(String)
 }
