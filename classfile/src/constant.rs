@@ -21,6 +21,15 @@ pub fn get_utf8(constant_pool: &Vec<Constant>, index: usize) -> Option<&String> 
     };
 }
 
+pub fn get_class_name(constant_pool: &Vec<Constant>, index: usize) -> Option<&String> {
+    let constant = &constant_pool[index - 1];
+    return if let Constant::Class { name_index } = constant {
+        get_utf8(constant_pool, *name_index as usize)
+    } else {
+        None
+    };
+}
+
 
 #[derive(Debug, Clone)]
 pub enum Constant {
