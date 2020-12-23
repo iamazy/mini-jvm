@@ -121,7 +121,7 @@ mod test {
 
     #[test]
     fn read_class_file() {
-        let file = std::fs::File::open("/Users/iamazy/Desktop/HelloWorld.class").unwrap();
+        let file = std::fs::File::open("tests/HelloWorld.class").unwrap();
         let bytes: Vec<u8> = file.bytes().map(|x|x.unwrap()).collect();
         let mut buf = BytesMut::with_capacity(64);
         buf.put_slice(bytes.as_slice());

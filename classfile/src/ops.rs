@@ -43,7 +43,6 @@ pub const ACC_ANNOTATION: u16 = 0x2000;
 pub const ACC_ENUM: u16 = 0x4000;
 
 
-
 /// Tag values for the constant pool entries
 pub const CONSTANT_CLASS_TAG: u8 = 7;
 pub const CONSTANT_FIELD_REF_TAG: u8 = 9;

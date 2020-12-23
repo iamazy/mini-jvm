@@ -10,27 +10,27 @@ pub enum Attribute {
     ConstantValue {
         attribute_name_index: u16,
         attribute_length: u32,
-        constant_value_index: u16
+        constant_value_index: u16,
     },
     Code {
         attribute_name_index: u16,
         attribute_length: u32,
-        code: CodeAttribute
+        code: CodeAttribute,
     },
     StackMapTable {
         attribute_name_index: u16,
         attribute_length: u32,
-        entries: Vec<StackMap>
+        entries: Vec<StackMap>,
     },
     Exceptions {
         attribute_name_index: u16,
         attribute_length: u32,
-        exception_index_table: Vec<u16>
+        exception_index_table: Vec<u16>,
     },
     InnerClasses {
         attribute_name_index: u16,
         attribute_length: u32,
-        classes: Vec<InnerClass>
+        classes: Vec<InnerClass>,
     },
     EnclosingMethod {
         attribute_name_index: u16,
@@ -45,32 +45,32 @@ pub enum Attribute {
     Signature {
         attribute_name_index: u16,
         attribute_length: u32,
-        signature_index: u16
+        signature_index: u16,
     },
     SourceFile {
         attribute_name_index: u16,
         attribute_length: u32,
-        sourcefile_index: u16
+        sourcefile_index: u16,
     },
     SourceDebugExtension {
         attribute_name_index: u16,
         attribute_length: u32,
-        debug_extension: Vec<u8>
+        debug_extension: Vec<u8>,
     },
     LineNumberTable {
         attribute_name_index: u16,
         attribute_length: u32,
-        line_number_table: Vec<LineNumber>
+        line_number_table: Vec<LineNumber>,
     },
     LocalVariableTable {
         attribute_name_index: u16,
         attribute_length: u32,
-        local_variable_table: Vec<LocalVariable>
+        local_variable_table: Vec<LocalVariable>,
     },
     LocalVariableTypeTable {
         attribute_name_index: u16,
         attribute_length: u32,
-        local_variable_type_table: Vec<LocalVariableType>
+        local_variable_type_table: Vec<LocalVariableType>,
     },
     Deprecated {
         attribute_name_index: u16,
@@ -79,47 +79,47 @@ pub enum Attribute {
     RuntimeVisibleAnnotations {
         attribute_name_index: u16,
         attribute_length: u32,
-        annotations: Vec<Annotation>
+        annotations: Vec<Annotation>,
     },
     RuntimeInvisibleAnnotations {
         attribute_name_index: u16,
         attribute_length: u32,
-        annotations: Vec<Annotation>
+        annotations: Vec<Annotation>,
     },
     RuntimeVisibleParameterAnnotations {
         attribute_name_index: u16,
         attribute_length: u32,
-        parameter_annotations: Vec<ParameterAnnotation>
+        parameter_annotations: Vec<ParameterAnnotation>,
     },
     RuntimeInvisibleParameterAnnotations {
         attribute_name_index: u16,
         attribute_length: u32,
-        parameter_annotations: Vec<ParameterAnnotation>
+        parameter_annotations: Vec<ParameterAnnotation>,
     },
     RuntimeVisibleTypeAnnotations {
         attribute_name_index: u16,
         attribute_length: u32,
-        annotations: Vec<TypeAnnotation>
+        annotations: Vec<TypeAnnotation>,
     },
     RuntimeInvisibleTypeAnnotations {
         attribute_name_index: u16,
         attribute_length: u32,
-        annotations: Vec<TypeAnnotation>
+        annotations: Vec<TypeAnnotation>,
     },
     AnnotationDefault {
         attribute_name_index: u16,
         attribute_length: u32,
-        default_value: ElementValue
+        default_value: ElementValue,
     },
     BootstrapMethods {
         attribute_name_index: u16,
         attribute_length: u32,
-        bootstrap_methods: Vec<BootstrapMethod>
+        bootstrap_methods: Vec<BootstrapMethod>,
     },
     MethodParameters {
         attribute_name_index: u16,
         attribute_length: u32,
-        parameters: Vec<MethodParameter>
+        parameters: Vec<MethodParameter>,
     },
 }
 
@@ -401,16 +401,16 @@ impl Attribute {
                 Ok(Attribute::ConstantValue {
                     attribute_name_index,
                     attribute_length,
-                    constant_value_index
+                    constant_value_index,
                 })
-            },
+            }
             "Code" => {
                 Ok(Attribute::Code {
                     attribute_name_index,
                     attribute_length,
-                    code: CodeAttribute::from_buf(buf, constant_pool) ?
+                    code: CodeAttribute::from_buf(buf, constant_pool)?,
                 })
-            },
+            }
             "StackMapTable" => {
                 let number_of_entries = buf.get_u16();
                 let mut entries: Vec<StackMap> = vec![];
@@ -420,9 +420,9 @@ impl Attribute {
                 Ok(Attribute::StackMapTable {
                     attribute_name_index,
                     attribute_length,
-                    entries
+                    entries,
                 })
-            },
+            }
             "Exceptions" => {
                 let number_of_exceptions = buf.get_u16();
                 let mut exception_index_table: Vec<u16> = vec![];
@@ -432,9 +432,9 @@ impl Attribute {
                 Ok(Attribute::Exceptions {
                     attribute_name_index,
                     attribute_length,
-                    exception_index_table
+                    exception_index_table,
                 })
-            },
+            }
             "InnerClass" => {
                 let number_of_classes = buf.get_u16();
                 let mut classes: Vec<InnerClass> = vec![];
@@ -444,9 +444,9 @@ impl Attribute {
                 Ok(Attribute::InnerClasses {
                     attribute_name_index,
                     attribute_length,
-                    classes
+                    classes,
                 })
-            },
+            }
             "EnclosingMethod" => {
                 let class_index = buf.get_u16();
                 let method_index = buf.get_u16();
@@ -454,29 +454,29 @@ impl Attribute {
                     attribute_name_index,
                     attribute_length,
                     class_index,
-                    method_index
+                    method_index,
                 })
-            },
+            }
             "Synthetic" => Ok(Attribute::Synthetic {
                 attribute_name_index,
-                attribute_length
+                attribute_length,
             }),
             "Signature" => {
                 let signature_index = buf.get_u16();
                 Ok(Attribute::Signature {
                     attribute_name_index,
                     attribute_length,
-                    signature_index
+                    signature_index,
                 })
-            },
+            }
             "SourceFile" => {
                 let sourcefile_index = buf.get_u16();
                 Ok(Attribute::SourceFile {
                     attribute_name_index,
                     attribute_length,
-                    sourcefile_index
+                    sourcefile_index,
                 })
-            },
+            }
             "SourceDebugExtension" => {
                 let mut debug_extension: Vec<u8> = vec![];
                 for _ in 0..attribute_length {
@@ -485,9 +485,9 @@ impl Attribute {
                 Ok(Attribute::SourceDebugExtension {
                     attribute_name_index,
                     attribute_length,
-                    debug_extension
+                    debug_extension,
                 })
-            },
+            }
             "LineNumberTable" => {
                 let line_number_table_length = buf.get_u16();
                 let mut line_number_table: Vec<LineNumber> = vec![];
@@ -497,9 +497,9 @@ impl Attribute {
                 Ok(Attribute::LineNumberTable {
                     attribute_name_index,
                     attribute_length,
-                    line_number_table
+                    line_number_table,
                 })
-            },
+            }
             "LocalVariableTable" => {
                 let local_variable_table_length = buf.get_u16();
                 let mut local_variable_table: Vec<LocalVariable> = vec![];
@@ -509,9 +509,9 @@ impl Attribute {
                 Ok(Attribute::LocalVariableTable {
                     attribute_name_index,
                     attribute_length,
-                    local_variable_table
+                    local_variable_table,
                 })
-            },
+            }
             "LocalVariableTypeTable" => {
                 let local_variable_type_table_length = buf.get_u16();
                 let mut local_variable_type_table: Vec<LocalVariableType> = vec![];
@@ -521,12 +521,12 @@ impl Attribute {
                 Ok(Attribute::LocalVariableTypeTable {
                     attribute_name_index,
                     attribute_length,
-                    local_variable_type_table
+                    local_variable_type_table,
                 })
-            },
+            }
             "Deprecated" => Ok(Attribute::Deprecated {
                 attribute_name_index,
-                attribute_length
+                attribute_length,
             }),
             "RuntimeVisibleAnnotations" => {
                 let num_annotations = buf.get_u16();
@@ -537,9 +537,9 @@ impl Attribute {
                 Ok(Attribute::RuntimeVisibleAnnotations {
                     attribute_name_index,
                     attribute_length,
-                    annotations
+                    annotations,
                 })
-            },
+            }
             "RuntimeInvisibleAnnotations" => {
                 let num_annotations = buf.get_u16();
                 let mut annotations: Vec<Annotation> = vec![];
@@ -549,7 +549,7 @@ impl Attribute {
                 Ok(Attribute::RuntimeInvisibleAnnotations {
                     attribute_name_index,
                     attribute_length,
-                    annotations
+                    annotations,
                 })
             }
             "RuntimeVisibleParameterAnnotations" => {
@@ -561,9 +561,9 @@ impl Attribute {
                 Ok(Attribute::RuntimeVisibleParameterAnnotations {
                     attribute_name_index,
                     attribute_length,
-                    parameter_annotations
+                    parameter_annotations,
                 })
-            },
+            }
             "RuntimeInvisibleParameterAnnotations" => {
                 let num_parameters = buf.get_u8();
                 let mut parameter_annotations: Vec<ParameterAnnotation> = vec![];
@@ -573,9 +573,9 @@ impl Attribute {
                 Ok(Attribute::RuntimeInvisibleParameterAnnotations {
                     attribute_name_index,
                     attribute_length,
-                    parameter_annotations
+                    parameter_annotations,
                 })
-            },
+            }
             "RuntimeVisibleTypeAnnotations" => {
                 let num_annotations = buf.get_u8();
                 let mut type_annotations: Vec<TypeAnnotation> = vec![];
@@ -585,9 +585,9 @@ impl Attribute {
                 Ok(Attribute::RuntimeVisibleTypeAnnotations {
                     attribute_name_index,
                     attribute_length,
-                    annotations: type_annotations
+                    annotations: type_annotations,
                 })
-            },
+            }
             "RuntimeInvisibleTypeAnnotations" => {
                 let num_annotations = buf.get_u8();
                 let mut type_annotations: Vec<TypeAnnotation> = vec![];
@@ -597,16 +597,16 @@ impl Attribute {
                 Ok(Attribute::RuntimeInvisibleTypeAnnotations {
                     attribute_name_index,
                     attribute_length,
-                    annotations: type_annotations
+                    annotations: type_annotations,
                 })
-            },
+            }
             "AnnotationDefault" => {
                 Ok(Attribute::AnnotationDefault {
                     attribute_name_index,
                     attribute_length,
-                    default_value: ElementValue::from_buf(buf)?
+                    default_value: ElementValue::from_buf(buf)?,
                 })
-            },
+            }
             "BootstrapMethods" => {
                 let num_bootstrap_methods = buf.get_u16();
                 let mut bootstrap_methods: Vec<BootstrapMethod> = vec![];
@@ -616,9 +616,9 @@ impl Attribute {
                 Ok(Attribute::BootstrapMethods {
                     attribute_name_index,
                     attribute_length,
-                    bootstrap_methods
+                    bootstrap_methods,
                 })
-            },
+            }
             "MethodParameters" => {
                 let parameters_count = buf.get_u8();
                 let mut parameters: Vec<MethodParameter> = vec![];
@@ -628,11 +628,11 @@ impl Attribute {
                 Ok(Attribute::MethodParameters {
                     attribute_name_index,
                     attribute_length,
-                    parameters
+                    parameters,
                 })
-            },
+            }
             _ => Err(Error::InvalidAttributeName((*attribute_name).clone()))
-        }
+        };
     }
 
     fn length(&self) -> usize {
@@ -696,7 +696,7 @@ impl CodeAttribute {
             max_locals,
             code,
             exception_table,
-            attributes
+            attributes,
         })
     }
 
@@ -733,7 +733,7 @@ impl FromToBytes<Exception> for Exception {
             start_pc,
             end_pc,
             handler_pc,
-            catch_type
+            catch_type,
         })
     }
 
@@ -781,9 +781,9 @@ impl FromToBytes<StackMap> for StackMap {
         buf.put_u8(self.frame_type);
         len += 1;
         match self.frame_type {
-            0..=63 => {},
+            0..=63 => {}
             64..=127 => {
-                if let StackMapFrame::SameLocals1StackItemFrame {stack} = &self.frame {
+                if let StackMapFrame::SameLocals1StackItemFrame { stack } = &self.frame {
                     len += stack.to_buf(buf)?;
                 } else {
                     return Err(Error::MismatchFrameType(self.frame_type, self.frame.clone()));
@@ -909,7 +909,7 @@ impl FromToBytes<StackMap> for StackMap {
                 frame = StackMapFrame::FullFrame {
                     offset_delta,
                     locals,
-                    stack
+                    stack,
                 };
             }
             _ => {
@@ -1393,7 +1393,6 @@ impl FromToBytes<ParameterAnnotation> for ParameterAnnotation {
         unimplemented!()
     }
 }
-
 
 
 ///```jvm

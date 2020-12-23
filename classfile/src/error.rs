@@ -2,7 +2,6 @@ use crate::attribute::StackMapFrame;
 
 #[derive(Debug, Clone)]
 pub enum Error {
-
     InvalidLength,
 
     InvalidString(String),
@@ -30,5 +29,5 @@ pub enum Error {
     MismatchFrameType(u8, StackMapFrame),
 
     // Attribute
-    InvalidAttributeName(String)
+    InvalidAttributeName(String),
 }

@@ -8,7 +8,7 @@ pub struct Field {
     pub access_flags: u16,
     pub name_index: u16,
     pub descriptor_index: u16,
-    pub attributes: Vec<Attribute>
+    pub attributes: Vec<Attribute>,
 }
 
 impl Field {
@@ -38,7 +38,7 @@ impl Field {
             access_flags,
             name_index,
             descriptor_index,
-            attributes
+            attributes,
         })
     }
 
