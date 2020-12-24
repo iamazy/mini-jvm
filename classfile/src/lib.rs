@@ -9,6 +9,9 @@ pub mod method;
 pub mod ops;
 pub mod class_reader;
 pub mod error;
+pub mod access_flags;
+pub mod types;
+pub mod descriptor;
 
 
 pub fn write_string(string: String, buf: &mut impl BufMut) -> usize {
