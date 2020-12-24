@@ -107,6 +107,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "hotspot"
+version = "0.1.0"
+dependencies = [
+ "classfile",
+]
+
+[[package]]
 name = "humantime"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
