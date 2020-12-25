@@ -2,9 +2,7 @@ use crate::{FromToBytes, read_string, write_string};
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 use crate::ops;
-use std::path::Display;
-use core::fmt;
-use bitflags::_core::fmt::Formatter;
+use std::fmt::{self, Formatter};
 
 ///```jvm
 /// cp_info {
