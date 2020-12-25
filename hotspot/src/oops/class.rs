@@ -4,6 +4,23 @@ use crate::oops::symbol::Symbol;
 
 pub struct ClassPtr(u64);
 
+impl ClassPtr {
+    pub fn new(class: Class) -> Arc<ClassPtr> {
+        let class = Box::new(class);
+        let ptr = Box::into_raw(class) as u64;
+        Arc::new(ClassPtr(ptr))
+    }
+}
+
+impl Drop for ClassPtr {
+    fn drop(&mut self) {
+        let _ = unsafe {
+            Box::from_raw(self.0 as *mut Class)
+        };
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct Class {
     pub access_flags: u16,
