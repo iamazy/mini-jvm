@@ -112,6 +112,10 @@ impl<'a> Method<'a> {
     pub fn is_object_initializer(&self) -> bool {
         unimplemented!()
     }
+
+    pub fn print_method_descriptor(&self) {
+        unimplemented!()
+    }
 }
 
 impl Display for Method {
