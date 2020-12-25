@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 use crate::attribute::Attribute;
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
