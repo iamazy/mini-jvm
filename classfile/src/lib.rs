@@ -10,7 +10,6 @@ pub mod ops;
 pub mod class_reader;
 pub mod error;
 pub mod access_flags;
-pub mod types;
 pub mod descriptor;
 
 
