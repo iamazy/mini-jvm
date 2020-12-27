@@ -1,6 +1,6 @@
 use crate::constant::Constant;
-use crate::field::Field;
-use crate::method::Method;
+use crate::field::FieldInfo;
+use crate::method::MethodInfo;
 use crate::attribute::Attribute;
 use crate::FromToBytes;
 use bytes::{BytesMut, BufMut, Buf};
@@ -16,9 +16,9 @@ pub struct ClassFile {
     pub this_class: u16,
     pub super_class: u16,
     pub interfaces: Vec<Constant>,
-    pub fields: Vec<Field>,
-    pub methods: Vec<Method>,
-    pub attributes: Vec<Attribute>
+    pub fields: Vec<FieldInfo>,
+    pub methods: Vec<MethodInfo>,
+    pub attributes: Vec<Attribute>,
 }
 
 impl FromToBytes<ClassFile> for ClassFile {
@@ -71,21 +71,21 @@ impl FromToBytes<ClassFile> for ClassFile {
         let mut interfaces: Vec<Constant> = vec![];
         for _ in 0..interface_count {
             let constant = Constant::from_buf(buf)?;
-            if let Constant::Class { .. } =  constant {
+            if let Constant::Class { .. } = constant {
                 interfaces.push(constant);
             } else {
                 return Err(Error::MismatchConstantType);
             }
         }
         let fields_count = buf.get_u16();
-        let mut fields: Vec<Field> = vec![];
+        let mut fields: Vec<FieldInfo> = vec![];
         for _ in 0..fields_count {
-            fields.push(Field::from_buf(buf, &constant_pool)?);
+            fields.push(FieldInfo::from_buf(buf, &constant_pool)?);
         }
         let methods_count = buf.get_u16();
-        let mut methods: Vec<Method> = vec![];
+        let mut methods: Vec<MethodInfo> = vec![];
         for _ in 0..methods_count {
-            methods.push(Method::from_buf(buf, &constant_pool)?);
+            methods.push(MethodInfo::from_buf(buf, &constant_pool)?);
         }
         let attributes_count = buf.get_u16();
         let mut attributes: Vec<Attribute> = vec![];
@@ -103,7 +103,7 @@ impl FromToBytes<ClassFile> for ClassFile {
             interfaces,
             fields,
             methods,
-            attributes
+            attributes,
         })
     }
 
@@ -118,11 +118,12 @@ mod test {
     use bytes::{BytesMut, BufMut};
     use crate::class_file::ClassFile;
     use crate::FromToBytes;
+    use crate::constant::Constant;
 
     #[test]
     fn read_class_file() {
         let file = std::fs::File::open("tests/HelloWorld.class").unwrap();
-        let bytes: Vec<u8> = file.bytes().map(|x|x.unwrap()).collect();
+        let bytes: Vec<u8> = file.bytes().map(|x| x.unwrap()).collect();
         let mut buf = BytesMut::with_capacity(64);
         buf.put_slice(bytes.as_slice());
         let class_file = ClassFile::from_buf(&mut buf).unwrap();

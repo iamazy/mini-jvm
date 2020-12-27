@@ -1,7 +1,6 @@
 use bytes::{BufMut, BytesMut, Buf, Bytes};
 use crate::error::Error;
 
-pub mod class_file;
 pub mod constant;
 pub mod field;
 pub mod attribute;
@@ -11,6 +10,8 @@ pub mod class_reader;
 pub mod error;
 pub mod access_flags;
 pub mod descriptor;
+pub mod package;
+pub mod module;
 
 
 pub fn write_string(string: String, buf: &mut impl BufMut) -> usize {
