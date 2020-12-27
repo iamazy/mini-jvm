@@ -1,6 +1,7 @@
 use std::fmt::{self, Display, Formatter};
 use std::sync::Arc;
 use crate::oops::symbol::Symbol;
+use classfile::constant::{Constant, get_utf8};
 
 pub struct ClassPtr(u64);
 
@@ -33,6 +34,13 @@ pub struct Class {
 }
 
 impl Class {
+
+    // pub fn get_name<'a>(&self, constant_pool: &'a Vec<Constant>) -> Option<&'a String>{
+    //     if let Constant::Class { name_index } = self {
+    //         return get_utf8(constant_pool, *name_index as usize)
+    //     }
+    //     None
+    // }
 
     pub fn is_subclass_of(&self, class: &Class) {
         unimplemented!()
@@ -96,4 +104,22 @@ impl Display for Class {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         unimplemented!()
     }
+}
+
+/// See "The Java Virtual Machine Specification" section 2.16.2-5 for a detailed description
+/// of the class loading & initialization procedure, and the use of the states.
+#[derive(Debug, Clone)]
+pub enum ClassState {
+    // allocated (but not yet linked)
+    Allocated,
+    // loaded and inserted in class hierarchy (but not linked yet)
+    Loaded,
+    // successfully linked/verified (but not initialized yet)
+    Linked,
+    // currently running class initializer
+    BeingInitialized,
+    // initialized (successful final state)
+    FullyInitialized,
+    // error happened during initialization
+    InitializationError
 }

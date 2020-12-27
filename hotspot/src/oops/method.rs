@@ -16,7 +16,7 @@ pub struct Method<'a> {
     pub class: Arc<ClassPtr>,
     pub max_locals: usize,
     pub max_stacks: usize,
-    pub code: &'a [u8],
+    pub code: Vec<u8>,
     pub exception_table: Vec<Exception>,
     pub line_number_table: Vec<LineNumber>
 }
