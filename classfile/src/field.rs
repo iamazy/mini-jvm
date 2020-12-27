@@ -4,14 +4,14 @@ use crate::error::Error;
 use crate::constant::Constant;
 
 #[derive(Debug, Clone)]
-pub struct Field {
+pub struct FieldInfo {
     pub access_flags: u16,
     pub name_index: u16,
     pub descriptor_index: u16,
     pub attributes: Vec<Attribute>,
 }
 
-impl Field {
+impl FieldInfo {
     pub fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u16(self.access_flags);
@@ -25,7 +25,7 @@ impl Field {
         Ok(len)
     }
 
-    pub fn from_buf(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<Field, Error> {
+    pub fn from_buf(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<FieldInfo, Error> {
         let access_flags = buf.get_u16();
         let name_index = buf.get_u16();
         let descriptor_index = buf.get_u16();
@@ -34,7 +34,7 @@ impl Field {
         for _ in 0..attribute_count {
             attributes.push(Attribute::from_buf(buf, constant_pool)?);
         }
-        Ok(Field {
+        Ok(FieldInfo {
             access_flags,
             name_index,
             descriptor_index,

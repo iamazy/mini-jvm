@@ -5,14 +5,14 @@ use crate::error::Error;
 use crate::constant::Constant;
 
 #[derive(Debug, Clone)]
-pub struct Method {
+pub struct MethodInfo {
     pub access_flags: u16,
     pub name_index: u16,
     pub descriptor_index: u16,
     pub attributes: Vec<Attribute>,
 }
 
-impl Method {
+impl MethodInfo {
     pub fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u16(self.access_flags);
@@ -26,7 +26,7 @@ impl Method {
         Ok(len)
     }
 
-    pub fn from_buf(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<Method, Error> {
+    pub fn from_buf(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<MethodInfo, Error> {
         let access_flags = buf.get_u16();
         let name_index = buf.get_u16();
         let descriptor_index = buf.get_u16();
@@ -35,7 +35,7 @@ impl Method {
         for _ in 0..attribute_count {
             attributes.push(Attribute::from_buf(buf, constant_pool)?);
         }
-        Ok(Method {
+        Ok(MethodInfo {
             access_flags,
             name_index,
             descriptor_index,
