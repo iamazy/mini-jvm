@@ -118,7 +118,6 @@ mod test {
     use bytes::{BytesMut, BufMut};
     use crate::class_file::ClassFile;
     use crate::FromToBytes;
-    use crate::constant::Constant;
 
     #[test]
     fn read_class_file() {
