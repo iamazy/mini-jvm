@@ -2,7 +2,7 @@ use crate::constant::Constant;
 use crate::field::FieldInfo;
 use crate::method::MethodInfo;
 use crate::attribute::Attribute;
-use crate::FromToBytes;
+use crate::{FromToBytes, MAGIC};
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 
@@ -56,7 +56,7 @@ impl FromToBytes<ClassFile> for ClassFile {
 
     fn from_buf(buf: &mut BytesMut) -> Result<ClassFile, Error> {
         let magic = buf.get_u32();
-        assert_eq!(magic, 0xCAFEBABE);
+        assert_eq!(magic, MAGIC);
         let minor_version = buf.get_u16();
         let major_version = buf.get_u16();
         let constant_pool_count = buf.get_u16();
