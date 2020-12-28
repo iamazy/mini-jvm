@@ -10,7 +10,7 @@ pub struct LocalVars {
 impl LocalVars {
 
     pub fn new(size: usize) -> Self {
-        let slots = vec![Slot::Noop; size];
+        let slots = vec![Slot::Nop; size];
         LocalVars {
             slots
         }
