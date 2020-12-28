@@ -1,7 +1,22 @@
 use crate::{FromToBytes, read_string, write_string};
+use crate::{
+    CONSTANT_CLASS_TAG,
+    CONSTANT_FIELD_REF_TAG,
+    CONSTANT_METHOD_REF_TAG,
+    CONSTANT_INTERFACE_METHOD_REF_TAG,
+    CONSTANT_STRING_TAG,
+    CONSTANT_INTEGER_TAG,
+    CONSTANT_FLOAT_TAG,
+    CONSTANT_LONG_TAG,
+    CONSTANT_DOUBLE_TAG,
+    CONSTANT_NAME_AND_TYPE_TAG,
+    CONSTANT_UTF8_TAG,
+    CONSTANT_METHOD_HANDLE_TAG,
+    CONSTANT_METHOD_TYPE_TAG,
+    CONSTANT_INVOKE_DYNAMIC_TAG,
+};
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
-use crate::ops;
 use std::fmt::{self, Formatter};
 
 ///```jvm
@@ -82,76 +97,76 @@ impl FromToBytes<Constant> for Constant {
         let mut len: usize = 1;
         match self {
             Constant::Class { name_index } => {
-                buf.put_u8(ops::CONSTANT_CLASS_TAG);
+                buf.put_u8(CONSTANT_CLASS_TAG);
                 buf.put_u16(*name_index);
                 len += 2;
             }
             Constant::FieldRef { class_index, name_and_type_index } => {
-                buf.put_u8(ops::CONSTANT_FIELD_REF_TAG);
+                buf.put_u8(CONSTANT_FIELD_REF_TAG);
                 buf.put_u16(*class_index);
                 buf.put_u16(*name_and_type_index);
                 len += 4;
             }
             Constant::MethodRef { class_index, name_and_type_index } => {
-                buf.put_u8(ops::CONSTANT_METHOD_REF_TAG);
+                buf.put_u8(CONSTANT_METHOD_REF_TAG);
                 buf.put_u16(*class_index);
                 buf.put_u16(*name_and_type_index);
                 len += 4;
             }
             Constant::InterfaceMethodRef { class_index, name_and_type_index } => {
-                buf.put_u8(ops::CONSTANT_INTERFACE_METHOD_REF_TAG);
+                buf.put_u8(CONSTANT_INTERFACE_METHOD_REF_TAG);
                 buf.put_u16(*class_index);
                 buf.put_u16(*name_and_type_index);
                 len += 4;
             }
             Constant::String { string_index } => {
-                buf.put_u8(ops::CONSTANT_STRING_TAG);
+                buf.put_u8(CONSTANT_STRING_TAG);
                 buf.put_u16(*string_index);
                 len += 2;
             }
             Constant::Integer(int) => {
-                buf.put_u8(ops::CONSTANT_INTEGER_TAG);
+                buf.put_u8(CONSTANT_INTEGER_TAG);
                 buf.put_i32(*int);
                 len += 4;
             }
             Constant::Float(float) => {
-                buf.put_u8(ops::CONSTANT_FLOAT_TAG);
+                buf.put_u8(CONSTANT_FLOAT_TAG);
                 buf.put_f32(*float);
                 len += 4;
             }
             Constant::Long(long) => {
-                buf.put_u8(ops::CONSTANT_LONG_TAG);
+                buf.put_u8(CONSTANT_LONG_TAG);
                 buf.put_i64(*long);
                 len += 8;
             }
             Constant::Double(double) => {
-                buf.put_u8(ops::CONSTANT_DOUBLE_TAG);
+                buf.put_u8(CONSTANT_DOUBLE_TAG);
                 buf.put_f64(*double);
                 len += 8;
             }
             Constant::NameAndType { name_index, descriptor_index } => {
-                buf.put_u8(ops::CONSTANT_NAME_AND_TYPE_TAG);
+                buf.put_u8(CONSTANT_NAME_AND_TYPE_TAG);
                 buf.put_u16(*name_index);
                 buf.put_u16(*descriptor_index);
                 len += 4;
             }
             Constant::Utf8(string) => {
-                buf.put_u8(ops::CONSTANT_UTF8_TAG);
+                buf.put_u8(CONSTANT_UTF8_TAG);
                 len += write_string((*string).clone(), buf);
             }
             Constant::MethodHandle { reference_kind, reference_index } => {
-                buf.put_u8(ops::CONSTANT_METHOD_HANDLE_TAG);
+                buf.put_u8(CONSTANT_METHOD_HANDLE_TAG);
                 buf.put_u8(*reference_kind);
                 buf.put_u16(*reference_index);
                 len += 3;
             }
             Constant::MethodType { descriptor_index } => {
-                buf.put_u8(ops::CONSTANT_METHOD_TYPE_TAG);
+                buf.put_u8(CONSTANT_METHOD_TYPE_TAG);
                 buf.put_u16(*descriptor_index);
                 len += 2;
             }
             Constant::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index } => {
-                buf.put_u8(ops::CONSTANT_INVOKE_DYNAMIC_TAG);
+                buf.put_u8(CONSTANT_INVOKE_DYNAMIC_TAG);
                 buf.put_u16(*bootstrap_method_attr_index);
                 buf.put_u16(*name_and_type_index);
                 len += 4;
@@ -163,63 +178,63 @@ impl FromToBytes<Constant> for Constant {
     fn from_buf(buf: &mut BytesMut) -> Result<Constant, Error> {
         let tag = buf.get_u8();
         match tag {
-            ops::CONSTANT_CLASS_TAG => {
+            CONSTANT_CLASS_TAG => {
                 let name_index = buf.get_u16();
                 Ok(Constant::Class { name_index })
             }
-            ops::CONSTANT_FIELD_REF_TAG => {
+            CONSTANT_FIELD_REF_TAG => {
                 let class_index = buf.get_u16();
                 let name_and_type_index = buf.get_u16();
                 Ok(Constant::FieldRef { class_index, name_and_type_index })
             }
-            ops::CONSTANT_METHOD_REF_TAG => {
+            CONSTANT_METHOD_REF_TAG => {
                 let class_index = buf.get_u16();
                 let name_and_type_index = buf.get_u16();
                 Ok(Constant::MethodRef { class_index, name_and_type_index })
             }
-            ops::CONSTANT_INTERFACE_METHOD_REF_TAG => {
+            CONSTANT_INTERFACE_METHOD_REF_TAG => {
                 let class_index = buf.get_u16();
                 let name_and_type_index = buf.get_u16();
                 Ok(Constant::InterfaceMethodRef { class_index, name_and_type_index })
             }
-            ops::CONSTANT_STRING_TAG => {
+            CONSTANT_STRING_TAG => {
                 let string_index = buf.get_u16();
                 Ok(Constant::String { string_index })
             }
-            ops::CONSTANT_INTEGER_TAG => {
+            CONSTANT_INTEGER_TAG => {
                 let value = buf.get_i32();
                 Ok(Constant::Integer(value))
             }
-            ops::CONSTANT_FLOAT_TAG => {
+            CONSTANT_FLOAT_TAG => {
                 let value = buf.get_f32();
                 Ok(Constant::Float(value))
             }
-            ops::CONSTANT_LONG_TAG => {
+            CONSTANT_LONG_TAG => {
                 let value = buf.get_i64();
                 Ok(Constant::Long(value))
             }
-            ops::CONSTANT_DOUBLE_TAG => {
+            CONSTANT_DOUBLE_TAG => {
                 let value = buf.get_f64();
                 Ok(Constant::Double(value))
             }
-            ops::CONSTANT_NAME_AND_TYPE_TAG => {
+            CONSTANT_NAME_AND_TYPE_TAG => {
                 let name_index = buf.get_u16();
                 let descriptor_index = buf.get_u16();
                 Ok(Constant::NameAndType { name_index, descriptor_index })
             }
-            ops::CONSTANT_UTF8_TAG => {
+            CONSTANT_UTF8_TAG => {
                 Ok(Constant::Utf8(read_string(buf)?))
             }
-            ops::CONSTANT_METHOD_HANDLE_TAG => {
+            CONSTANT_METHOD_HANDLE_TAG => {
                 let reference_kind = buf.get_u8();
                 let reference_index = buf.get_u16();
                 Ok(Constant::MethodHandle { reference_kind, reference_index })
             }
-            ops::CONSTANT_METHOD_TYPE_TAG => {
+            CONSTANT_METHOD_TYPE_TAG => {
                 let descriptor_index = buf.get_u16();
                 Ok(Constant::MethodType { descriptor_index })
             }
-            ops::CONSTANT_INVOKE_DYNAMIC_TAG => {
+            CONSTANT_INVOKE_DYNAMIC_TAG => {
                 let bootstrap_method_attr_index = buf.get_u16();
                 let name_and_type_index = buf.get_u16();
                 Ok(Constant::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index })
