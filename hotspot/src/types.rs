@@ -1,5 +1,3 @@
-use crate::oops::class::ClassPtr;
-
 def_ptr!(CharArrayPtr, Vec<char>);
 def_ptr!(BoolArrayPtr, Vec<bool>);
 def_ptr!(ByteArrayPtr, Vec<u8>);

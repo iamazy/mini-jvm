@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use classfile::attribute::{Exception, LineNumber};
-use crate::class::Class;
 use crate::basic_type::BasicType;
 use std::fmt::{self, Display, Formatter};
 use crate::oops::class::ClassPtr;
@@ -118,7 +117,7 @@ impl<'a> Method<'a> {
     }
 }
 
-impl Display for Method {
+impl<'a> Display for Method<'a> {
     // print method code
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         unimplemented!()

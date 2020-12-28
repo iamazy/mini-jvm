@@ -1,8 +1,8 @@
 use std::fmt::{self, Display, Formatter};
 use std::sync::Arc;
 use crate::oops::symbol::Symbol;
-use classfile::constant::{Constant, get_utf8};
 
+#[derive(Debug, Clone)]
 pub struct ClassPtr(u64);
 
 impl ClassPtr {
