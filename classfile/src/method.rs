@@ -3,6 +3,7 @@ use crate::attribute::Attribute;
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 use crate::constant::Constant;
+use crate::TryFromCp;
 
 #[derive(Debug, Clone)]
 pub struct MethodInfo {
@@ -10,6 +11,27 @@ pub struct MethodInfo {
     pub name_index: u16,
     pub descriptor_index: u16,
     pub attributes: Vec<Attribute>,
+}
+
+impl TryFromCp<&mut BytesMut> for MethodInfo {
+    type Error = Error;
+
+    fn try_from_cp(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<Self, Self::Error> {
+        let access_flags = buf.get_u16();
+        let name_index = buf.get_u16();
+        let descriptor_index = buf.get_u16();
+        let attribute_count = buf.get_u16();
+        let mut attributes: Vec<Attribute> = vec![];
+        for _ in 0..attribute_count {
+            attributes.push(Attribute::try_from_cp(buf, constant_pool)?);
+        }
+        Ok(MethodInfo {
+            access_flags,
+            name_index,
+            descriptor_index,
+            attributes,
+        })
+    }
 }
 
 impl MethodInfo {
@@ -24,26 +46,5 @@ impl MethodInfo {
             len += attribute.to_buf(buf)?;
         }
         Ok(len)
-    }
-
-    pub fn from_buf(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<MethodInfo, Error> {
-        let access_flags = buf.get_u16();
-        let name_index = buf.get_u16();
-        let descriptor_index = buf.get_u16();
-        let attribute_count = buf.get_u16();
-        let mut attributes: Vec<Attribute> = vec![];
-        for _ in 0..attribute_count {
-            attributes.push(Attribute::from_buf(buf, constant_pool)?);
-        }
-        Ok(MethodInfo {
-            access_flags,
-            name_index,
-            descriptor_index,
-            attributes,
-        })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
     }
 }

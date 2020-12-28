@@ -1,6 +1,7 @@
 #[allow(unused)]
 use bytes::{BufMut, BytesMut, Buf, Bytes};
 use crate::error::Error;
+use crate::constant::Constant;
 
 pub mod class_file;
 pub mod constant;
@@ -39,6 +40,11 @@ pub fn read_bytes(buf: &mut BytesMut) -> Result<Bytes, Error> {
     } else {
         Ok(buf.split_to(len).split().freeze())
     }
+}
+
+pub trait TryFromCp<T>: Sized {
+    type Error;
+    fn try_from_cp(value: T, constant_pool: &Vec<Constant>) -> Result<Self, Self::Error>;
 }
 
 pub trait FromToBytes<R> {

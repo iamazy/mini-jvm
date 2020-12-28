@@ -1,9 +1,10 @@
 #![allow(dead_code)]
 
-use crate::FromToBytes;
+use crate::TryFromCp;
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 use crate::constant::{Constant, get_utf8};
+use std::convert::TryFrom;
 
 #[derive(Debug, Clone)]
 pub enum Attribute {
@@ -121,6 +122,254 @@ pub enum Attribute {
         attribute_length: u32,
         parameters: Vec<MethodParameter>,
     },
+}
+
+impl TryFromCp<&mut BytesMut> for Attribute {
+    type Error = Error;
+
+    fn try_from_cp(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<Self, Self::Error> {
+        let attribute_name_index = buf.get_u16();
+        let attribute_length = buf.get_u32();
+        let attribute_name = get_utf8(constant_pool, attribute_name_index as usize).unwrap();
+        return match attribute_name.as_str() {
+            "ConstantValue" => {
+                let constant_value_index = buf.get_u16();
+                Ok(Attribute::ConstantValue {
+                    attribute_name_index,
+                    attribute_length,
+                    constant_value_index,
+                })
+            }
+            "Code" => {
+                Ok(Attribute::Code {
+                    attribute_name_index,
+                    attribute_length,
+                    code: CodeAttribute::try_from_cp(buf, constant_pool)?,
+                })
+            }
+            "StackMapTable" => {
+                let number_of_entries = buf.get_u16();
+                let mut entries: Vec<StackMap> = vec![];
+                for _ in 0..number_of_entries {
+                    entries.push(StackMap::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::StackMapTable {
+                    attribute_name_index,
+                    attribute_length,
+                    entries,
+                })
+            }
+            "Exceptions" => {
+                let number_of_exceptions = buf.get_u16();
+                let mut exception_index_table: Vec<u16> = vec![];
+                for _ in 0..number_of_exceptions {
+                    exception_index_table.push(buf.get_u16());
+                }
+                Ok(Attribute::Exceptions {
+                    attribute_name_index,
+                    attribute_length,
+                    exception_index_table,
+                })
+            }
+            "InnerClass" => {
+                let number_of_classes = buf.get_u16();
+                let mut classes: Vec<InnerClass> = vec![];
+                for _ in 0..number_of_classes {
+                    classes.push(InnerClass::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::InnerClasses {
+                    attribute_name_index,
+                    attribute_length,
+                    classes,
+                })
+            }
+            "EnclosingMethod" => {
+                let class_index = buf.get_u16();
+                let method_index = buf.get_u16();
+                Ok(Attribute::EnclosingMethod {
+                    attribute_name_index,
+                    attribute_length,
+                    class_index,
+                    method_index,
+                })
+            }
+            "Synthetic" => Ok(Attribute::Synthetic {
+                attribute_name_index,
+                attribute_length,
+            }),
+            "Signature" => {
+                let signature_index = buf.get_u16();
+                Ok(Attribute::Signature {
+                    attribute_name_index,
+                    attribute_length,
+                    signature_index,
+                })
+            }
+            "SourceFile" => {
+                let sourcefile_index = buf.get_u16();
+                Ok(Attribute::SourceFile {
+                    attribute_name_index,
+                    attribute_length,
+                    sourcefile_index,
+                })
+            }
+            "SourceDebugExtension" => {
+                let mut debug_extension: Vec<u8> = vec![];
+                for _ in 0..attribute_length {
+                    debug_extension.push(buf.get_u8());
+                }
+                Ok(Attribute::SourceDebugExtension {
+                    attribute_name_index,
+                    attribute_length,
+                    debug_extension,
+                })
+            }
+            "LineNumberTable" => {
+                let line_number_table_length = buf.get_u16();
+                let mut line_number_table: Vec<LineNumber> = vec![];
+                for _ in 0..line_number_table_length {
+                    line_number_table.push(LineNumber::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::LineNumberTable {
+                    attribute_name_index,
+                    attribute_length,
+                    line_number_table,
+                })
+            }
+            "LocalVariableTable" => {
+                let local_variable_table_length = buf.get_u16();
+                let mut local_variable_table: Vec<LocalVariable> = vec![];
+                for _ in 0..local_variable_table_length {
+                    local_variable_table.push(LocalVariable::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::LocalVariableTable {
+                    attribute_name_index,
+                    attribute_length,
+                    local_variable_table,
+                })
+            }
+            "LocalVariableTypeTable" => {
+                let local_variable_type_table_length = buf.get_u16();
+                let mut local_variable_type_table: Vec<LocalVariableType> = vec![];
+                for _ in 0..local_variable_type_table_length {
+                    local_variable_type_table.push(LocalVariableType::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::LocalVariableTypeTable {
+                    attribute_name_index,
+                    attribute_length,
+                    local_variable_type_table,
+                })
+            }
+            "Deprecated" => Ok(Attribute::Deprecated {
+                attribute_name_index,
+                attribute_length,
+            }),
+            "RuntimeVisibleAnnotations" => {
+                let num_annotations = buf.get_u16();
+                let mut annotations: Vec<Annotation> = vec![];
+                for _ in 0..num_annotations {
+                    annotations.push(Annotation::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::RuntimeVisibleAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    annotations,
+                })
+            }
+            "RuntimeInvisibleAnnotations" => {
+                let num_annotations = buf.get_u16();
+                let mut annotations: Vec<Annotation> = vec![];
+                for _ in 0..num_annotations {
+                    annotations.push(Annotation::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::RuntimeInvisibleAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    annotations,
+                })
+            }
+            "RuntimeVisibleParameterAnnotations" => {
+                let num_parameters = buf.get_u8();
+                let mut parameter_annotations: Vec<ParameterAnnotation> = vec![];
+                for _ in 0..num_parameters {
+                    parameter_annotations.push(ParameterAnnotation::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::RuntimeVisibleParameterAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    parameter_annotations,
+                })
+            }
+            "RuntimeInvisibleParameterAnnotations" => {
+                let num_parameters = buf.get_u8();
+                let mut parameter_annotations: Vec<ParameterAnnotation> = vec![];
+                for _ in 0..num_parameters {
+                    parameter_annotations.push(ParameterAnnotation::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::RuntimeInvisibleParameterAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    parameter_annotations,
+                })
+            }
+            "RuntimeVisibleTypeAnnotations" => {
+                let num_annotations = buf.get_u8();
+                let mut type_annotations: Vec<TypeAnnotation> = vec![];
+                for _ in 0..num_annotations {
+                    type_annotations.push(TypeAnnotation::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::RuntimeVisibleTypeAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    annotations: type_annotations,
+                })
+            }
+            "RuntimeInvisibleTypeAnnotations" => {
+                let num_annotations = buf.get_u8();
+                let mut type_annotations: Vec<TypeAnnotation> = vec![];
+                for _ in 0..num_annotations {
+                    type_annotations.push(TypeAnnotation::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::RuntimeInvisibleTypeAnnotations {
+                    attribute_name_index,
+                    attribute_length,
+                    annotations: type_annotations,
+                })
+            }
+            "AnnotationDefault" => {
+                Ok(Attribute::AnnotationDefault {
+                    attribute_name_index,
+                    attribute_length,
+                    default_value: ElementValue::try_from(&mut *buf)?,
+                })
+            }
+            "BootstrapMethods" => {
+                let num_bootstrap_methods = buf.get_u16();
+                let mut bootstrap_methods: Vec<BootstrapMethod> = vec![];
+                for _ in 0..num_bootstrap_methods {
+                    bootstrap_methods.push(BootstrapMethod::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::BootstrapMethods {
+                    attribute_name_index,
+                    attribute_length,
+                    bootstrap_methods,
+                })
+            }
+            "MethodParameters" => {
+                let parameters_count = buf.get_u8();
+                let mut parameters: Vec<MethodParameter> = vec![];
+                for _ in 0..parameters_count {
+                    parameters.push(MethodParameter::try_from(&mut *buf)?);
+                }
+                Ok(Attribute::MethodParameters {
+                    attribute_name_index,
+                    attribute_length,
+                    parameters,
+                })
+            }
+            _ => Err(Error::InvalidAttributeName((*attribute_name).clone()))
+        };
+    }
 }
 
 impl Attribute {
@@ -390,254 +639,6 @@ impl Attribute {
         }
         Ok(len)
     }
-
-    pub fn from_buf(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<Attribute, Error> {
-        let attribute_name_index = buf.get_u16();
-        let attribute_length = buf.get_u32();
-        let attribute_name = get_utf8(constant_pool, attribute_name_index as usize).unwrap();
-        return match attribute_name.as_str() {
-            "ConstantValue" => {
-                let constant_value_index = buf.get_u16();
-                Ok(Attribute::ConstantValue {
-                    attribute_name_index,
-                    attribute_length,
-                    constant_value_index,
-                })
-            }
-            "Code" => {
-                Ok(Attribute::Code {
-                    attribute_name_index,
-                    attribute_length,
-                    code: CodeAttribute::from_buf(buf, constant_pool)?,
-                })
-            }
-            "StackMapTable" => {
-                let number_of_entries = buf.get_u16();
-                let mut entries: Vec<StackMap> = vec![];
-                for _ in 0..number_of_entries {
-                    entries.push(StackMap::from_buf(buf)?);
-                }
-                Ok(Attribute::StackMapTable {
-                    attribute_name_index,
-                    attribute_length,
-                    entries,
-                })
-            }
-            "Exceptions" => {
-                let number_of_exceptions = buf.get_u16();
-                let mut exception_index_table: Vec<u16> = vec![];
-                for _ in 0..number_of_exceptions {
-                    exception_index_table.push(buf.get_u16());
-                }
-                Ok(Attribute::Exceptions {
-                    attribute_name_index,
-                    attribute_length,
-                    exception_index_table,
-                })
-            }
-            "InnerClass" => {
-                let number_of_classes = buf.get_u16();
-                let mut classes: Vec<InnerClass> = vec![];
-                for _ in 0..number_of_classes {
-                    classes.push(InnerClass::from_buf(buf)?);
-                }
-                Ok(Attribute::InnerClasses {
-                    attribute_name_index,
-                    attribute_length,
-                    classes,
-                })
-            }
-            "EnclosingMethod" => {
-                let class_index = buf.get_u16();
-                let method_index = buf.get_u16();
-                Ok(Attribute::EnclosingMethod {
-                    attribute_name_index,
-                    attribute_length,
-                    class_index,
-                    method_index,
-                })
-            }
-            "Synthetic" => Ok(Attribute::Synthetic {
-                attribute_name_index,
-                attribute_length,
-            }),
-            "Signature" => {
-                let signature_index = buf.get_u16();
-                Ok(Attribute::Signature {
-                    attribute_name_index,
-                    attribute_length,
-                    signature_index,
-                })
-            }
-            "SourceFile" => {
-                let sourcefile_index = buf.get_u16();
-                Ok(Attribute::SourceFile {
-                    attribute_name_index,
-                    attribute_length,
-                    sourcefile_index,
-                })
-            }
-            "SourceDebugExtension" => {
-                let mut debug_extension: Vec<u8> = vec![];
-                for _ in 0..attribute_length {
-                    debug_extension.push(buf.get_u8());
-                }
-                Ok(Attribute::SourceDebugExtension {
-                    attribute_name_index,
-                    attribute_length,
-                    debug_extension,
-                })
-            }
-            "LineNumberTable" => {
-                let line_number_table_length = buf.get_u16();
-                let mut line_number_table: Vec<LineNumber> = vec![];
-                for _ in 0..line_number_table_length {
-                    line_number_table.push(LineNumber::from_buf(buf)?);
-                }
-                Ok(Attribute::LineNumberTable {
-                    attribute_name_index,
-                    attribute_length,
-                    line_number_table,
-                })
-            }
-            "LocalVariableTable" => {
-                let local_variable_table_length = buf.get_u16();
-                let mut local_variable_table: Vec<LocalVariable> = vec![];
-                for _ in 0..local_variable_table_length {
-                    local_variable_table.push(LocalVariable::from_buf(buf)?);
-                }
-                Ok(Attribute::LocalVariableTable {
-                    attribute_name_index,
-                    attribute_length,
-                    local_variable_table,
-                })
-            }
-            "LocalVariableTypeTable" => {
-                let local_variable_type_table_length = buf.get_u16();
-                let mut local_variable_type_table: Vec<LocalVariableType> = vec![];
-                for _ in 0..local_variable_type_table_length {
-                    local_variable_type_table.push(LocalVariableType::from_buf(buf)?);
-                }
-                Ok(Attribute::LocalVariableTypeTable {
-                    attribute_name_index,
-                    attribute_length,
-                    local_variable_type_table,
-                })
-            }
-            "Deprecated" => Ok(Attribute::Deprecated {
-                attribute_name_index,
-                attribute_length,
-            }),
-            "RuntimeVisibleAnnotations" => {
-                let num_annotations = buf.get_u16();
-                let mut annotations: Vec<Annotation> = vec![];
-                for _ in 0..num_annotations {
-                    annotations.push(Annotation::from_buf(buf)?);
-                }
-                Ok(Attribute::RuntimeVisibleAnnotations {
-                    attribute_name_index,
-                    attribute_length,
-                    annotations,
-                })
-            }
-            "RuntimeInvisibleAnnotations" => {
-                let num_annotations = buf.get_u16();
-                let mut annotations: Vec<Annotation> = vec![];
-                for _ in 0..num_annotations {
-                    annotations.push(Annotation::from_buf(buf)?);
-                }
-                Ok(Attribute::RuntimeInvisibleAnnotations {
-                    attribute_name_index,
-                    attribute_length,
-                    annotations,
-                })
-            }
-            "RuntimeVisibleParameterAnnotations" => {
-                let num_parameters = buf.get_u8();
-                let mut parameter_annotations: Vec<ParameterAnnotation> = vec![];
-                for _ in 0..num_parameters {
-                    parameter_annotations.push(ParameterAnnotation::from_buf(buf)?);
-                }
-                Ok(Attribute::RuntimeVisibleParameterAnnotations {
-                    attribute_name_index,
-                    attribute_length,
-                    parameter_annotations,
-                })
-            }
-            "RuntimeInvisibleParameterAnnotations" => {
-                let num_parameters = buf.get_u8();
-                let mut parameter_annotations: Vec<ParameterAnnotation> = vec![];
-                for _ in 0..num_parameters {
-                    parameter_annotations.push(ParameterAnnotation::from_buf(buf)?);
-                }
-                Ok(Attribute::RuntimeInvisibleParameterAnnotations {
-                    attribute_name_index,
-                    attribute_length,
-                    parameter_annotations,
-                })
-            }
-            "RuntimeVisibleTypeAnnotations" => {
-                let num_annotations = buf.get_u8();
-                let mut type_annotations: Vec<TypeAnnotation> = vec![];
-                for _ in 0..num_annotations {
-                    type_annotations.push(TypeAnnotation::from_buf(buf)?);
-                }
-                Ok(Attribute::RuntimeVisibleTypeAnnotations {
-                    attribute_name_index,
-                    attribute_length,
-                    annotations: type_annotations,
-                })
-            }
-            "RuntimeInvisibleTypeAnnotations" => {
-                let num_annotations = buf.get_u8();
-                let mut type_annotations: Vec<TypeAnnotation> = vec![];
-                for _ in 0..num_annotations {
-                    type_annotations.push(TypeAnnotation::from_buf(buf)?);
-                }
-                Ok(Attribute::RuntimeInvisibleTypeAnnotations {
-                    attribute_name_index,
-                    attribute_length,
-                    annotations: type_annotations,
-                })
-            }
-            "AnnotationDefault" => {
-                Ok(Attribute::AnnotationDefault {
-                    attribute_name_index,
-                    attribute_length,
-                    default_value: ElementValue::from_buf(buf)?,
-                })
-            }
-            "BootstrapMethods" => {
-                let num_bootstrap_methods = buf.get_u16();
-                let mut bootstrap_methods: Vec<BootstrapMethod> = vec![];
-                for _ in 0..num_bootstrap_methods {
-                    bootstrap_methods.push(BootstrapMethod::from_buf(buf)?);
-                }
-                Ok(Attribute::BootstrapMethods {
-                    attribute_name_index,
-                    attribute_length,
-                    bootstrap_methods,
-                })
-            }
-            "MethodParameters" => {
-                let parameters_count = buf.get_u8();
-                let mut parameters: Vec<MethodParameter> = vec![];
-                for _ in 0..parameters_count {
-                    parameters.push(MethodParameter::from_buf(buf)?);
-                }
-                Ok(Attribute::MethodParameters {
-                    attribute_name_index,
-                    attribute_length,
-                    parameters,
-                })
-            }
-            _ => Err(Error::InvalidAttributeName((*attribute_name).clone()))
-        };
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -647,6 +648,37 @@ pub struct CodeAttribute {
     pub code: Vec<u8>,
     pub exception_table: Vec<Exception>,
     pub attributes: Vec<Attribute>,
+}
+
+impl TryFromCp<&mut BytesMut> for CodeAttribute {
+    type Error = Error;
+
+    fn try_from_cp(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<Self, Self::Error> {
+        let max_stack = buf.get_u16();
+        let max_locals = buf.get_u16();
+        let code_length = buf.get_u32();
+        let mut code: Vec<u8> = vec![];
+        for _ in 0..code_length {
+            code.push(buf.get_u8());
+        }
+        let exception_table_length = buf.get_u16();
+        let mut exception_table: Vec<Exception> = vec![];
+        for _ in 0..exception_table_length {
+            exception_table.push(Exception::try_from(&mut *buf)?);
+        }
+        let attributes_count = buf.get_u16();
+        let mut attributes: Vec<Attribute> = vec![];
+        for _ in 0..attributes_count {
+            attributes.push(Attribute::try_from_cp(buf, constant_pool)?);
+        }
+        Ok(CodeAttribute {
+            max_stack,
+            max_locals,
+            code,
+            exception_table,
+            attributes,
+        })
+    }
 }
 
 impl CodeAttribute {
@@ -672,37 +704,6 @@ impl CodeAttribute {
         }
         Ok(len)
     }
-
-    fn from_buf(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<CodeAttribute, Error> {
-        let max_stack = buf.get_u16();
-        let max_locals = buf.get_u16();
-        let code_length = buf.get_u32();
-        let mut code: Vec<u8> = vec![];
-        for _ in 0..code_length {
-            code.push(buf.get_u8());
-        }
-        let exception_table_length = buf.get_u16();
-        let mut exception_table: Vec<Exception> = vec![];
-        for _ in 0..exception_table_length {
-            exception_table.push(Exception::from_buf(buf)?);
-        }
-        let attributes_count = buf.get_u16();
-        let mut attributes: Vec<Attribute> = vec![];
-        for _ in 0..attributes_count {
-            attributes.push(Attribute::from_buf(buf, constant_pool)?);
-        }
-        Ok(CodeAttribute {
-            max_stack,
-            max_locals,
-            code,
-            exception_table,
-            attributes,
-        })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -713,18 +714,10 @@ pub struct Exception {
     pub catch_type: u16,
 }
 
-impl FromToBytes<Exception> for Exception {
-    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
-        let mut len: usize = 0;
-        buf.put_u16(self.start_pc);
-        buf.put_u16(self.end_pc);
-        buf.put_u16(self.handler_pc);
-        buf.put_u16(self.catch_type);
-        len += 8;
-        Ok(len)
-    }
+impl TryFrom<&mut BytesMut> for Exception {
+    type Error = Error;
 
-    fn from_buf(buf: &mut BytesMut) -> Result<Exception, Error> {
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
         let start_pc = buf.get_u16();
         let end_pc = buf.get_u16();
         let handler_pc = buf.get_u16();
@@ -736,9 +729,17 @@ impl FromToBytes<Exception> for Exception {
             catch_type,
         })
     }
+}
 
-    fn length(&self) -> usize {
-        unimplemented!()
+impl Exception {
+    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+        let mut len: usize = 0;
+        buf.put_u16(self.start_pc);
+        buf.put_u16(self.end_pc);
+        buf.put_u16(self.handler_pc);
+        buf.put_u16(self.catch_type);
+        len += 8;
+        Ok(len)
     }
 }
 
@@ -775,7 +776,79 @@ pub struct StackMap {
     frame: StackMapFrame,
 }
 
-impl FromToBytes<StackMap> for StackMap {
+impl TryFrom<&mut BytesMut> for StackMap {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let frame_type = buf.get_u8();
+        let frame: StackMapFrame;
+        match frame_type {
+            0..=63 => {
+                frame = StackMapFrame::SameFrame;
+            }
+            64..=127 => {
+                let stack = VerificationTypeInfo::try_from(buf)?;
+                frame = StackMapFrame::SameLocals1StackItemFrame { stack };
+            }
+            247 => {
+                let offset_delta = buf.get_u16();
+                let stack = VerificationTypeInfo::try_from(buf)?;
+                frame = StackMapFrame::SameLocals1StackItemFrameExtended {
+                    offset_delta,
+                    stack,
+                };
+            }
+            248..=250 => {
+                let offset_delta = buf.get_u16();
+                frame = StackMapFrame::ChopFrame { offset_delta };
+            }
+            251 => {
+                let offset_delta = buf.get_u16();
+                frame = StackMapFrame::SameFrameExtended { offset_delta };
+            }
+            252..=254 => {
+                let offset_delta = buf.get_u16();
+                let frame_type = frame_type;
+                let num_verification_type_info = frame_type - 251;
+                let mut locals: Vec<VerificationTypeInfo> = vec![];
+                for _ in 0..num_verification_type_info {
+                    let local = VerificationTypeInfo::try_from(&mut *buf)?;
+                    locals.push(local);
+                }
+                frame = StackMapFrame::AppendFrame { offset_delta, locals };
+            }
+            255 => {
+                let offset_delta = buf.get_u16();
+                let number_of_locals = buf.get_u16();
+                let mut locals: Vec<VerificationTypeInfo> = vec![];
+                for _ in 0..number_of_locals {
+                    let local = VerificationTypeInfo::try_from(&mut *buf)?;
+                    locals.push(local);
+                }
+                let number_of_stack_items = buf.get_u16();
+                let mut stack: Vec<VerificationTypeInfo> = vec![];
+                for _ in 0..number_of_stack_items {
+                    let stack_item = VerificationTypeInfo::try_from(&mut *buf)?;
+                    stack.push(stack_item);
+                }
+                frame = StackMapFrame::FullFrame {
+                    offset_delta,
+                    locals,
+                    stack,
+                };
+            }
+            _ => {
+                return Err(Error::InvalidFrameType);
+            }
+        }
+        Ok(StackMap {
+            frame_type,
+            frame,
+        })
+    }
+}
+
+impl StackMap {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u8(self.frame_type);
@@ -853,78 +926,6 @@ impl FromToBytes<StackMap> for StackMap {
         }
         Ok(len)
     }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<StackMap, Error> {
-        let frame_type = buf.get_u8();
-        let frame: StackMapFrame;
-        match frame_type {
-            0..=63 => {
-                frame = StackMapFrame::SameFrame;
-            }
-            64..=127 => {
-                let stack = VerificationTypeInfo::from_buf(buf)?;
-                frame = StackMapFrame::SameLocals1StackItemFrame { stack };
-            }
-            247 => {
-                let offset_delta = buf.get_u16();
-                let stack = VerificationTypeInfo::from_buf(buf)?;
-                frame = StackMapFrame::SameLocals1StackItemFrameExtended {
-                    offset_delta,
-                    stack,
-                };
-            }
-            248..=250 => {
-                let offset_delta = buf.get_u16();
-                frame = StackMapFrame::ChopFrame { offset_delta };
-            }
-            251 => {
-                let offset_delta = buf.get_u16();
-                frame = StackMapFrame::SameFrameExtended { offset_delta };
-            }
-            252..=254 => {
-                let offset_delta = buf.get_u16();
-                let frame_type = frame_type;
-                let num_verification_type_info = frame_type - 251;
-                let mut locals: Vec<VerificationTypeInfo> = vec![];
-                for _ in 0..num_verification_type_info {
-                    let local = VerificationTypeInfo::from_buf(buf)?;
-                    locals.push(local);
-                }
-                frame = StackMapFrame::AppendFrame { offset_delta, locals };
-            }
-            255 => {
-                let offset_delta = buf.get_u16();
-                let number_of_locals = buf.get_u16();
-                let mut locals: Vec<VerificationTypeInfo> = vec![];
-                for _ in 0..number_of_locals {
-                    let local = VerificationTypeInfo::from_buf(buf)?;
-                    locals.push(local);
-                }
-                let number_of_stack_items = buf.get_u16();
-                let mut stack: Vec<VerificationTypeInfo> = vec![];
-                for _ in 0..number_of_stack_items {
-                    let stack_item = VerificationTypeInfo::from_buf(buf)?;
-                    stack.push(stack_item);
-                }
-                frame = StackMapFrame::FullFrame {
-                    offset_delta,
-                    locals,
-                    stack,
-                };
-            }
-            _ => {
-                return Err(Error::InvalidFrameType);
-            }
-        }
-        Ok(StackMap {
-            frame_type,
-            frame,
-        })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -944,7 +945,49 @@ pub enum VerificationTypeInfo {
     },
 }
 
-impl FromToBytes<VerificationTypeInfo> for VerificationTypeInfo {
+impl TryFrom<&mut BytesMut> for VerificationTypeInfo {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let tag = buf.get_u8();
+        return match tag {
+            0 => {
+                Ok(VerificationTypeInfo::Top)
+            }
+            1 => {
+                Ok(VerificationTypeInfo::Integer)
+            }
+            2 => {
+                Ok(VerificationTypeInfo::Float)
+            }
+            3 => {
+                Ok(VerificationTypeInfo::Double)
+            }
+            4 => {
+                Ok(VerificationTypeInfo::Long)
+            }
+            5 => {
+                Ok(VerificationTypeInfo::Null)
+            }
+            6 => {
+                Ok(VerificationTypeInfo::UninitializedThis)
+            }
+            7 => {
+                let cpool_index = buf.get_u16();
+                Ok(VerificationTypeInfo::Object { cpool_index })
+            }
+            8 => {
+                let offset = buf.get_u16();
+                Ok(VerificationTypeInfo::Uninitialized { offset })
+            }
+            _ => {
+                Err(Error::InvalidVerificationTypeInfo)
+            }
+        };
+    }
+}
+
+impl VerificationTypeInfo {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 1;
         match self {
@@ -982,48 +1025,6 @@ impl FromToBytes<VerificationTypeInfo> for VerificationTypeInfo {
         }
         Ok(len)
     }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<VerificationTypeInfo, Error> {
-        let tag = buf.get_u8();
-        return match tag {
-            0 => {
-                Ok(VerificationTypeInfo::Top)
-            }
-            1 => {
-                Ok(VerificationTypeInfo::Integer)
-            }
-            2 => {
-                Ok(VerificationTypeInfo::Float)
-            }
-            3 => {
-                Ok(VerificationTypeInfo::Double)
-            }
-            4 => {
-                Ok(VerificationTypeInfo::Long)
-            }
-            5 => {
-                Ok(VerificationTypeInfo::Null)
-            }
-            6 => {
-                Ok(VerificationTypeInfo::UninitializedThis)
-            }
-            7 => {
-                let cpool_index = buf.get_u16();
-                Ok(VerificationTypeInfo::Object { cpool_index })
-            }
-            8 => {
-                let offset = buf.get_u16();
-                Ok(VerificationTypeInfo::Uninitialized { offset })
-            }
-            _ => {
-                Err(Error::InvalidVerificationTypeInfo)
-            }
-        };
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -1034,18 +1035,10 @@ pub struct InnerClass {
     pub inner_class_access_flags: u16,
 }
 
-impl FromToBytes<InnerClass> for InnerClass {
-    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
-        let mut len: usize = 0;
-        buf.put_u16(self.inner_class_info_index);
-        buf.put_u16(self.outer_class_info_index);
-        buf.put_u16(self.inner_name_index);
-        buf.put_u16(self.inner_class_access_flags);
-        len += 8;
-        Ok(len)
-    }
+impl TryFrom<&mut BytesMut> for InnerClass {
+    type Error = Error;
 
-    fn from_buf(buf: &mut BytesMut) -> Result<InnerClass, Error> {
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
         let inner_class_info_index = buf.get_u16();
         let outer_class_info_index = buf.get_u16();
         let inner_name_index = buf.get_u16();
@@ -1057,9 +1050,17 @@ impl FromToBytes<InnerClass> for InnerClass {
             inner_class_access_flags,
         })
     }
+}
 
-    fn length(&self) -> usize {
-        8
+impl InnerClass {
+    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+        let mut len: usize = 0;
+        buf.put_u16(self.inner_class_info_index);
+        buf.put_u16(self.outer_class_info_index);
+        buf.put_u16(self.inner_name_index);
+        buf.put_u16(self.inner_class_access_flags);
+        len += 8;
+        Ok(len)
     }
 }
 
@@ -1069,23 +1070,23 @@ pub struct LineNumber {
     pub line_number: u16,
 }
 
-impl FromToBytes<LineNumber> for LineNumber {
+impl TryFrom<&mut BytesMut> for LineNumber {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let start_pc = buf.get_u16();
+        let line_number = buf.get_u16();
+        Ok(LineNumber { start_pc, line_number })
+    }
+}
+
+impl LineNumber {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u16(self.start_pc);
         buf.put_u16(self.line_number);
         len += 4;
         Ok(len)
-    }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<LineNumber, Error> {
-        let start_pc = buf.get_u16();
-        let line_number = buf.get_u16();
-        Ok(LineNumber { start_pc, line_number })
-    }
-
-    fn length(&self) -> usize {
-        4
     }
 }
 
@@ -1098,19 +1099,10 @@ pub struct LocalVariable {
     pub index: u16,
 }
 
-impl FromToBytes<LocalVariable> for LocalVariable {
-    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
-        let mut len: usize = 0;
-        buf.put_u16(self.start_pc);
-        buf.put_u16(self.length);
-        buf.put_u16(self.name_index);
-        buf.put_u16(self.descriptor_index);
-        buf.put_u16(self.index);
-        len += 10;
-        Ok(len)
-    }
+impl TryFrom<&mut BytesMut> for LocalVariable {
+    type Error = Error;
 
-    fn from_buf(buf: &mut BytesMut) -> Result<LocalVariable, Error> {
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
         let start_pc = buf.get_u16();
         let length = buf.get_u16();
         let name_index = buf.get_u16();
@@ -1124,9 +1116,18 @@ impl FromToBytes<LocalVariable> for LocalVariable {
             index,
         })
     }
+}
 
-    fn length(&self) -> usize {
-        10
+impl LocalVariable {
+    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+        let mut len: usize = 0;
+        buf.put_u16(self.start_pc);
+        buf.put_u16(self.length);
+        buf.put_u16(self.name_index);
+        buf.put_u16(self.descriptor_index);
+        buf.put_u16(self.index);
+        len += 10;
+        Ok(len)
     }
 }
 
@@ -1139,19 +1140,10 @@ pub struct LocalVariableType {
     pub index: u16,
 }
 
-impl FromToBytes<LocalVariableType> for LocalVariableType {
-    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
-        let mut len: usize = 0;
-        buf.put_u16(self.start_pc);
-        buf.put_u16(self.length);
-        buf.put_u16(self.name_index);
-        buf.put_u16(self.signature_index);
-        buf.put_u16(self.index);
-        len += 10;
-        Ok(len)
-    }
+impl TryFrom<&mut BytesMut> for LocalVariableType {
+    type Error = Error;
 
-    fn from_buf(buf: &mut BytesMut) -> Result<LocalVariableType, Error> {
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
         let start_pc = buf.get_u16();
         let length = buf.get_u16();
         let name_index = buf.get_u16();
@@ -1165,9 +1157,18 @@ impl FromToBytes<LocalVariableType> for LocalVariableType {
             index,
         })
     }
+}
 
-    fn length(&self) -> usize {
-        10
+impl LocalVariableType {
+    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+        let mut len: usize = 0;
+        buf.put_u16(self.start_pc);
+        buf.put_u16(self.length);
+        buf.put_u16(self.name_index);
+        buf.put_u16(self.signature_index);
+        buf.put_u16(self.index);
+        len += 10;
+        Ok(len)
     }
 }
 
@@ -1189,7 +1190,23 @@ pub struct Annotation {
     pub element_value_pairs: Vec<(u16, ElementValue)>,
 }
 
-impl FromToBytes<Annotation> for Annotation {
+impl TryFrom<&mut BytesMut> for Annotation {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let type_index = buf.get_u16();
+        let num_element_value_pairs = buf.get_u16();
+        let mut element_value_pairs: Vec<(u16, ElementValue)> = vec![];
+        for _ in 0..num_element_value_pairs {
+            let element_name_index = buf.get_u16();
+            let element_value = ElementValue::try_from(&mut *buf)?;
+            element_value_pairs.push((element_name_index, element_value));
+        }
+        Ok(Annotation { type_index, element_value_pairs })
+    }
+}
+
+impl Annotation {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u16(self.type_index);
@@ -1200,22 +1217,6 @@ impl FromToBytes<Annotation> for Annotation {
             len += element_value_pair.1.to_buf(buf)?;
         }
         Ok(len)
-    }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<Annotation, Error> {
-        let type_index = buf.get_u16();
-        let num_element_value_pairs = buf.get_u16();
-        let mut element_value_pairs: Vec<(u16, ElementValue)> = vec![];
-        for _ in 0..num_element_value_pairs {
-            let element_name_index = buf.get_u16();
-            let element_value = ElementValue::from_buf(buf)?;
-            element_value_pairs.push((element_name_index, element_value));
-        }
-        Ok(Annotation { type_index, element_value_pairs })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
     }
 }
 
@@ -1270,7 +1271,45 @@ pub enum Element {
     ArrayValue(Vec<ElementValue>),
 }
 
-impl FromToBytes<ElementValue> for ElementValue {
+impl TryFrom<&mut BytesMut> for ElementValue {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let tag = buf.get_u8() as char;
+        let value: Element;
+        match tag {
+            'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' | 's' => {
+                value = Element::ConstValueIndex(buf.get_u16());
+            }
+            'e' => {
+                let type_name_index = buf.get_u16();
+                let const_name_index = buf.get_u16();
+                value = Element::EnumConstValue((type_name_index, const_name_index));
+            }
+            'c' => {
+                value = Element::ClassInfoIndex(buf.get_u16());
+            }
+            '@' => {
+                value = Element::AnnotationValue(Annotation::try_from(buf)?);
+            }
+            '[' => {
+                let num_values = buf.get_u16();
+                let mut values: Vec<ElementValue> = vec![];
+                for _ in 0..num_values {
+                    values.push(ElementValue::try_from(&mut *buf)?);
+                }
+                value = Element::ArrayValue(values);
+            }
+            c => {
+                return Err(Error::InvalidElementValueTag(c));
+            }
+        }
+        let tag = tag as u8;
+        Ok(ElementValue { tag, value })
+    }
+}
+
+impl ElementValue {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         let tag = self.tag as char;
@@ -1325,44 +1364,6 @@ impl FromToBytes<ElementValue> for ElementValue {
         }
         Ok(len)
     }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<ElementValue, Error> {
-        let tag = buf.get_u8() as char;
-        let value: Element;
-        match tag {
-            'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' | 's' => {
-                value = Element::ConstValueIndex(buf.get_u16());
-            }
-            'e' => {
-                let type_name_index = buf.get_u16();
-                let const_name_index = buf.get_u16();
-                value = Element::EnumConstValue((type_name_index, const_name_index));
-            }
-            'c' => {
-                value = Element::ClassInfoIndex(buf.get_u16());
-            }
-            '@' => {
-                value = Element::AnnotationValue(Annotation::from_buf(buf)?);
-            }
-            '[' => {
-                let num_values = buf.get_u16();
-                let mut values: Vec<ElementValue> = vec![];
-                for _ in 0..num_values {
-                    values.push(ElementValue::from_buf(buf)?);
-                }
-                value = Element::ArrayValue(values);
-            }
-            c => {
-                return Err(Error::InvalidElementValueTag(c));
-            }
-        }
-        let tag = tag as u8;
-        Ok(ElementValue { tag, value })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -1370,7 +1371,20 @@ pub struct ParameterAnnotation {
     annotations: Vec<Annotation>
 }
 
-impl FromToBytes<ParameterAnnotation> for ParameterAnnotation {
+impl TryFrom<&mut BytesMut> for ParameterAnnotation {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let num_annotations = buf.get_u16();
+        let mut annotations: Vec<Annotation> = vec![];
+        for _ in 0..num_annotations {
+            annotations.push(Annotation::try_from(&mut *buf)?);
+        }
+        Ok(ParameterAnnotation { annotations })
+    }
+}
+
+impl ParameterAnnotation {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u16(self.annotations.len() as u16);
@@ -1378,19 +1392,6 @@ impl FromToBytes<ParameterAnnotation> for ParameterAnnotation {
             len += annotation.to_buf(buf)?;
         }
         Ok(len)
-    }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<ParameterAnnotation, Error> {
-        let num_annotations = buf.get_u16();
-        let mut annotations: Vec<Annotation> = vec![];
-        for _ in 0..num_annotations {
-            annotations.push(Annotation::from_buf(buf)?);
-        }
-        Ok(ParameterAnnotation { annotations })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
     }
 }
 
@@ -1462,7 +1463,87 @@ pub enum TargetInfo {
     },
 }
 
-impl FromToBytes<TypeAnnotation> for TypeAnnotation {
+impl TryFrom<&mut BytesMut> for TypeAnnotation {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let target_type = buf.get_u8();
+        let target_info: TargetInfo;
+        match target_type {
+            0x00 | 0x01 => {
+                let type_parameter_index = buf.get_u8();
+                target_info = TargetInfo::TypeParameterTarget(type_parameter_index);
+            }
+            0x10 => {
+                let supertype_index = buf.get_u16();
+                target_info = TargetInfo::SupertypeTarget(supertype_index);
+            }
+            0x11 | 0x12 => {
+                let type_parameter_index = buf.get_u8();
+                let bound_index = buf.get_u8();
+                target_info = TargetInfo::TypeParameterBoundTarget { type_parameter_index, bound_index };
+            }
+            0x13 | 0x14 | 0x15 => target_info = TargetInfo::EmptyTarget,
+            0x16 => {
+                let formal_parameter_index = buf.get_u8();
+                target_info = TargetInfo::FormalParameterTarget(formal_parameter_index);
+            }
+            0x17 => {
+                let throws_type_index = buf.get_u16();
+                target_info = TargetInfo::ThrowTarget(throws_type_index);
+            }
+            0x40 | 0x41 => {
+                let table_length = buf.get_u16();
+                let mut local_vars: Vec<LocalVar> = vec![];
+                for _ in 0..table_length {
+                    let local_var = match LocalVar::try_from(&mut *buf) {
+                        Ok(local_var) => local_var,
+                        Err(e) => return Err(e)
+                    };
+                    local_vars.push(local_var);
+                }
+                target_info = TargetInfo::LocalVarTarget(local_vars);
+            }
+            0x42 => {
+                let exception_table_index = buf.get_u16();
+                target_info = TargetInfo::CatchTarget(exception_table_index);
+            }
+            0x43 | 0x44 | 0x45 | 0x46 => {
+                let offset = buf.get_u16();
+                target_info = TargetInfo::OffsetTarget(offset);
+            }
+            0x47 | 0x48 | 0x49 | 0x4A | 0x4B => {
+                let offset = buf.get_u16();
+                let type_argument_index = buf.get_u8();
+                target_info = TargetInfo::TypeArgumentTarget { offset, type_argument_index };
+            }
+            _ => {
+                return Err(Error::InvalidTargetType(target_type));
+            }
+        }
+        let target_path = TypePath::try_from(&mut *buf).unwrap();
+        let type_index = buf.get_u16();
+        let num_element_value_pairs = buf.get_u16();
+        let mut element_value_pairs: Vec<(u16, ElementValue)> = vec![];
+        for _ in 0..num_element_value_pairs {
+            let element_name_index = buf.get_u16();
+            let value = match ElementValue::try_from(&mut *buf) {
+                Ok(value) => value,
+                Err(e) => return Err(e)
+            };
+            element_value_pairs.push((element_name_index, value))
+        }
+        Ok(TypeAnnotation {
+            target_type,
+            target_info,
+            type_path: target_path,
+            type_index,
+            element_value_pairs,
+        })
+    }
+}
+
+impl TypeAnnotation {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u8(self.target_type);
@@ -1565,86 +1646,6 @@ impl FromToBytes<TypeAnnotation> for TypeAnnotation {
         }
         Ok(len)
     }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<TypeAnnotation, Error> {
-        let target_type = buf.get_u8();
-        let target_info: TargetInfo;
-        match target_type {
-            0x00 | 0x01 => {
-                let type_parameter_index = buf.get_u8();
-                target_info = TargetInfo::TypeParameterTarget(type_parameter_index);
-            }
-            0x10 => {
-                let supertype_index = buf.get_u16();
-                target_info = TargetInfo::SupertypeTarget(supertype_index);
-            }
-            0x11 | 0x12 => {
-                let type_parameter_index = buf.get_u8();
-                let bound_index = buf.get_u8();
-                target_info = TargetInfo::TypeParameterBoundTarget { type_parameter_index, bound_index };
-            }
-            0x13 | 0x14 | 0x15 => target_info = TargetInfo::EmptyTarget,
-            0x16 => {
-                let formal_parameter_index = buf.get_u8();
-                target_info = TargetInfo::FormalParameterTarget(formal_parameter_index);
-            }
-            0x17 => {
-                let throws_type_index = buf.get_u16();
-                target_info = TargetInfo::ThrowTarget(throws_type_index);
-            }
-            0x40 | 0x41 => {
-                let table_length = buf.get_u16();
-                let mut local_vars: Vec<LocalVar> = vec![];
-                for _ in 0..table_length {
-                    let local_var = match LocalVar::from_buf(buf) {
-                        Ok(local_var) => local_var,
-                        Err(e) => return Err(e)
-                    };
-                    local_vars.push(local_var);
-                }
-                target_info = TargetInfo::LocalVarTarget(local_vars);
-            }
-            0x42 => {
-                let exception_table_index = buf.get_u16();
-                target_info = TargetInfo::CatchTarget(exception_table_index);
-            }
-            0x43 | 0x44 | 0x45 | 0x46 => {
-                let offset = buf.get_u16();
-                target_info = TargetInfo::OffsetTarget(offset);
-            }
-            0x47 | 0x48 | 0x49 | 0x4A | 0x4B => {
-                let offset = buf.get_u16();
-                let type_argument_index = buf.get_u8();
-                target_info = TargetInfo::TypeArgumentTarget { offset, type_argument_index };
-            }
-            _ => {
-                return Err(Error::InvalidTargetType(target_type));
-            }
-        }
-        let target_path = TypePath::from_buf(buf).unwrap();
-        let type_index = buf.get_u16();
-        let num_element_value_pairs = buf.get_u16();
-        let mut element_value_pairs: Vec<(u16, ElementValue)> = vec![];
-        for _ in 0..num_element_value_pairs {
-            let element_name_index = buf.get_u16();
-            let value = match ElementValue::from_buf(buf) {
-                Ok(value) => value,
-                Err(e) => return Err(e)
-            };
-            element_value_pairs.push((element_name_index, value))
-        }
-        Ok(TypeAnnotation {
-            target_type,
-            target_info,
-            type_path: target_path,
-            type_index,
-            element_value_pairs,
-        })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
-    }
 }
 
 /// ```jvm
@@ -1663,7 +1664,22 @@ pub struct TypePath {
     pub path: Vec<(u8, u8)>
 }
 
-impl FromToBytes<TypePath> for TypePath {
+impl TryFrom<&mut BytesMut> for TypePath {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let path_length = buf.get_u8();
+        let mut path: Vec<(u8, u8)> = vec![];
+        for _ in 0..path_length {
+            let type_path_kind = buf.get_u8();
+            let type_argument_index = buf.get_u8();
+            path.push((type_path_kind, type_argument_index));
+        }
+        Ok(TypePath { path })
+    }
+}
+
+impl TypePath {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         let path_length = self.path.len() as u8;
@@ -1676,21 +1692,6 @@ impl FromToBytes<TypePath> for TypePath {
         }
         Ok(len)
     }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<TypePath, Error> {
-        let path_length = buf.get_u8();
-        let mut path: Vec<(u8, u8)> = vec![];
-        for _ in 0..path_length {
-            let type_path_kind = buf.get_u8();
-            let type_argument_index = buf.get_u8();
-            path.push((type_path_kind, type_argument_index));
-        }
-        Ok(TypePath { path })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -1700,7 +1701,18 @@ pub struct LocalVar {
     pub index: u16,
 }
 
-impl FromToBytes<LocalVar> for LocalVar {
+impl TryFrom<&mut BytesMut> for LocalVar {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let start_pc = buf.get_u16();
+        let length = buf.get_u16();
+        let index = buf.get_u16();
+        Ok(LocalVar { start_pc, length, index })
+    }
+}
+
+impl LocalVar {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u16(self.start_pc);
@@ -1708,17 +1720,6 @@ impl FromToBytes<LocalVar> for LocalVar {
         buf.put_u16(self.index);
         len += 6;
         Ok(len)
-    }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<LocalVar, Error> {
-        let start_pc = buf.get_u16();
-        let length = buf.get_u16();
-        let index = buf.get_u16();
-        Ok(LocalVar { start_pc, length, index })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
     }
 }
 
@@ -1728,7 +1729,21 @@ pub struct BootstrapMethod {
     pub bootstrap_arguments: Vec<u16>,
 }
 
-impl FromToBytes<BootstrapMethod> for BootstrapMethod {
+impl TryFrom<&mut BytesMut> for BootstrapMethod {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let bootstrap_method_ref = buf.get_u16();
+        let num_bootstrap_arguments = buf.get_u16();
+        let mut bootstrap_arguments: Vec<u16> = vec![];
+        for _ in 0..num_bootstrap_arguments {
+            bootstrap_arguments.push(buf.get_u16());
+        }
+        Ok(BootstrapMethod { bootstrap_method_ref, bootstrap_arguments })
+    }
+}
+
+impl BootstrapMethod {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u16(self.bootstrap_method_ref);
@@ -1742,20 +1757,6 @@ impl FromToBytes<BootstrapMethod> for BootstrapMethod {
         }
         Ok(len)
     }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<BootstrapMethod, Error> {
-        let bootstrap_method_ref = buf.get_u16();
-        let num_bootstrap_arguments = buf.get_u16();
-        let mut bootstrap_arguments: Vec<u16> = vec![];
-        for _ in 0..num_bootstrap_arguments {
-            bootstrap_arguments.push(buf.get_u16());
-        }
-        Ok(BootstrapMethod { bootstrap_method_ref, bootstrap_arguments })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
-    }
 }
 
 
@@ -1765,23 +1766,22 @@ pub struct MethodParameter {
     pub access_flags: u16,
 }
 
+impl TryFrom<&mut BytesMut> for MethodParameter {
+    type Error = Error;
 
-impl FromToBytes<MethodParameter> for MethodParameter {
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let name_index = buf.get_u16();
+        let access_flags = buf.get_u16();
+        Ok(MethodParameter { name_index, access_flags })
+    }
+}
+
+impl MethodParameter {
     fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 0;
         buf.put_u16(self.name_index);
         buf.put_u16(self.access_flags);
         len += 4;
         Ok(len)
-    }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<MethodParameter, Error> {
-        let name_index = buf.get_u16();
-        let access_flags = buf.get_u16();
-        Ok(MethodParameter { name_index, access_flags })
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
     }
 }

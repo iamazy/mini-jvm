@@ -2,7 +2,7 @@ use crate::constant::Constant;
 use crate::field::FieldInfo;
 use crate::method::MethodInfo;
 use crate::attribute::Attribute;
-use crate::{FromToBytes, MAGIC};
+use crate::{FromToBytes, MAGIC, TryFromCp};
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 
@@ -80,17 +80,17 @@ impl FromToBytes<ClassFile> for ClassFile {
         let fields_count = buf.get_u16();
         let mut fields: Vec<FieldInfo> = vec![];
         for _ in 0..fields_count {
-            fields.push(FieldInfo::from_buf(buf, &constant_pool)?);
+            fields.push(FieldInfo::try_from_cp(buf, &constant_pool)?);
         }
         let methods_count = buf.get_u16();
         let mut methods: Vec<MethodInfo> = vec![];
         for _ in 0..methods_count {
-            methods.push(MethodInfo::from_buf(buf, &constant_pool)?);
+            methods.push(MethodInfo::try_from_cp(buf, &constant_pool)?);
         }
         let attributes_count = buf.get_u16();
         let mut attributes: Vec<Attribute> = vec![];
         for _ in 0..attributes_count {
-            attributes.push(Attribute::from_buf(buf, &constant_pool)?);
+            attributes.push(Attribute::try_from_cp(buf, &constant_pool)?);
         }
         Ok(ClassFile {
             magic,
