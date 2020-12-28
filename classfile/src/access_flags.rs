@@ -1,39 +1,47 @@
-
 /// Class access and property modifiers
-// class
-pub const ACC_PUBLIC: u16 = 0x0001;
-// class
-pub const ACC_PRIVATE: u16 = 0x0002;
-// class
-pub const ACC_PROTECTED: u16 = 0x0004;
-// class
-pub const ACC_STATIC: u16 = 0x0008;
-// class
-pub const ACC_FINAL: u16 = 0x0010;
-// class
-pub const ACC_SUPER: u16 = 0x0020;
-// class
-pub const ACC_SYNCHRONIZED: u16 = 0x0020;
+#[derive(Debug, Clone)]
+pub enum AccessFlag {
+    Public,
+    Private,
+    Protected,
+    Static,
+    Final,
+    Super,
+    Synchronized,
+    Bridge,
+    Volatile,
+    Varargs,
+    Transient,
+    Native,
+    Interface,
+    Abstract,
+    Strict,
+    Synthetic,
+    Annotation,
+    Enum
+}
 
-pub const ACC_BRIDGE: u16 = 0x0040;
-
-pub const ACC_VOLATILE: u16 = 0x0040;
-
-pub const ACC_VARARGS: u16 = 0x0080;
-
-pub const ACC_TRANSIENT: u16 = 0x0080;
-// method
-pub const ACC_NATIVE: u16 = 0x0100;
-
-// class
-pub const ACC_INTERFACE: u16 = 0x0200;
-// class
-pub const ACC_ABSTRACT: u16 = 0x0400;
-
-pub const ACC_STRICT: u16 = 0x0800;
-// class
-pub const ACC_SYNTHETIC: u16 = 0x1000;
-// class
-pub const ACC_ANNOTATION: u16 = 0x2000;
-// class
-pub const ACC_ENUM: u16 = 0x4000;
+impl Into<u16> for AccessFlag {
+    fn into(self) -> u16 {
+        match self {
+            AccessFlag::Public => 0x0001u16,
+            AccessFlag::Private => 0x0002u16,
+            AccessFlag::Protected => 0x0004u16,
+            AccessFlag::Static => 0x0008u16,
+            AccessFlag::Final => 0x0010u16,
+            AccessFlag::Super => 0x0020u16,
+            AccessFlag::Synchronized => 0x0020u16,
+            AccessFlag::Bridge => 0x0040u16,
+            AccessFlag::Volatile => 0x0040u16,
+            AccessFlag::Varargs => 0x0080u16,
+            AccessFlag::Transient => 0x0080u16,
+            AccessFlag::Native => 0x0100u16,
+            AccessFlag::Interface => 0x0200u16,
+            AccessFlag::Abstract => 0x0400u16,
+            AccessFlag::Strict => 0x0800u16,
+            AccessFlag::Synthetic => 0x1000u16,
+            AccessFlag::Annotation => 0x2000u16,
+            AccessFlag::Enum => 0x4000u16
+        }
+    }
+}
