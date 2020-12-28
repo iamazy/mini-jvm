@@ -1,4 +1,4 @@
-use crate::{read_string, write_string};
+use crate::{read_string, write_string, TryInto};
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 use std::fmt::{self, Formatter};
@@ -218,6 +218,93 @@ impl TryFrom<&mut BytesMut> for Constant {
             }
             _ => Err(Error::InvalidConstantTag(tag.into()))
         }
+    }
+}
+
+impl<T> TryInto<&mut T, usize> for Constant where
+    T: BufMut {
+    type Error = Error;
+
+    fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
+        let mut len: usize = 1;
+        match self {
+            Constant::Class { name_index } => {
+                buf.put_u8(Tag::Class.into());
+                buf.put_u16(*name_index);
+                len += 2;
+            }
+            Constant::FieldRef { class_index, name_and_type_index } => {
+                buf.put_u8(Tag::FieldRef.into());
+                buf.put_u16(*class_index);
+                buf.put_u16(*name_and_type_index);
+                len += 4;
+            }
+            Constant::MethodRef { class_index, name_and_type_index } => {
+                buf.put_u8(Tag::MethodRef.into());
+                buf.put_u16(*class_index);
+                buf.put_u16(*name_and_type_index);
+                len += 4;
+            }
+            Constant::InterfaceMethodRef { class_index, name_and_type_index } => {
+                buf.put_u8(Tag::InterfaceMethodRef.into());
+                buf.put_u16(*class_index);
+                buf.put_u16(*name_and_type_index);
+                len += 4;
+            }
+            Constant::String { string_index } => {
+                buf.put_u8(Tag::String.into());
+                buf.put_u16(*string_index);
+                len += 2;
+            }
+            Constant::Integer(int) => {
+                buf.put_u8(Tag::Integer.into());
+                buf.put_i32(*int);
+                len += 4;
+            }
+            Constant::Float(float) => {
+                buf.put_u8(Tag::Float.into());
+                buf.put_f32(*float);
+                len += 4;
+            }
+            Constant::Long(long) => {
+                buf.put_u8(Tag::Long.into());
+                buf.put_i64(*long);
+                len += 8;
+            }
+            Constant::Double(double) => {
+                buf.put_u8(Tag::Double.into());
+                buf.put_f64(*double);
+                len += 8;
+            }
+            Constant::NameAndType { name_index, descriptor_index } => {
+                buf.put_u8(Tag::NameAndType.into());
+                buf.put_u16(*name_index);
+                buf.put_u16(*descriptor_index);
+                len += 4;
+            }
+            Constant::Utf8(string) => {
+                buf.put_u8(Tag::Utf8.into());
+                len += write_string(string.clone(), buf);
+            }
+            Constant::MethodHandle { reference_kind, reference_index } => {
+                buf.put_u8(Tag::MethodHandle.into());
+                buf.put_u8(*reference_kind);
+                buf.put_u16(*reference_index);
+                len += 3;
+            }
+            Constant::MethodType { descriptor_index } => {
+                buf.put_u8(Tag::MethodType.into());
+                buf.put_u16(*descriptor_index);
+                len += 2;
+            }
+            Constant::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index } => {
+                buf.put_u8(Tag::InvokeDynamic.into());
+                buf.put_u16(*bootstrap_method_attr_index);
+                buf.put_u16(*name_and_type_index);
+                len += 4;
+            }
+        }
+        Ok(len)
     }
 }
 

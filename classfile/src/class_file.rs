@@ -2,7 +2,7 @@ use crate::constant::Constant;
 use crate::field::FieldInfo;
 use crate::method::MethodInfo;
 use crate::attribute::Attribute;
-use crate::{MAGIC, TryFromCp};
+use crate::{MAGIC, TryFromCp, TryInto};
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 use std::convert::TryFrom;
@@ -79,8 +79,11 @@ impl TryFrom<&mut BytesMut> for ClassFile {
     }
 }
 
-impl ClassFile {
-    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+impl<T> TryInto<&mut T, usize> for ClassFile where
+    T: BufMut {
+    type Error = Error;
+
+    fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
         let mut len: usize = 0;
         buf.put_u32(self.magic);
         buf.put_u16(self.minor_version);
@@ -97,17 +100,17 @@ impl ClassFile {
         buf.put_u16(self.fields.len() as u16);
         len += 10;
         for field in &self.fields {
-            len += field.to_buf(buf)?;
+            len += field.try_into(buf)?;
         }
         buf.put_u16(self.methods.len() as u16);
         len += 2;
         for method in &self.methods {
-            len += method.to_buf(buf)?;
+            len += method.try_into(buf)?;
         }
         buf.put_u16(self.attributes.len() as u16);
         len += 2;
         for attribute in &self.attributes {
-            len += attribute.to_buf(buf)?;
+            len += attribute.try_into(buf)?;
         }
         Ok(len)
     }

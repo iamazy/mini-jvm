@@ -42,13 +42,12 @@ pub fn read_bytes(buf: &mut BytesMut) -> Result<Bytes, Error> {
     }
 }
 
+pub trait TryInto<T, S>: Sized {
+    type Error;
+    fn try_into(&self, t: T) -> Result<S, Self::Error>;
+}
+
 pub trait TryFromCp<T>: Sized {
     type Error;
     fn try_from_cp(value: T, constant_pool: &Vec<Constant>) -> Result<Self, Self::Error>;
-}
-
-pub trait FromToBytes<R> {
-    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error>;
-    fn from_buf(buf: &mut BytesMut) -> Result<R, Error>;
-    fn length(&self) -> usize;
 }

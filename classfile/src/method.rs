@@ -3,7 +3,7 @@ use crate::attribute::Attribute;
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 use crate::constant::Constant;
-use crate::TryFromCp;
+use crate::{TryFromCp, TryInto};
 
 #[derive(Debug, Clone)]
 pub struct MethodInfo {
@@ -34,8 +34,11 @@ impl TryFromCp<&mut BytesMut> for MethodInfo {
     }
 }
 
-impl MethodInfo {
-    pub fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+impl<T> TryInto<&mut T, usize> for MethodInfo where
+    T: BufMut {
+    type Error = Error;
+
+    fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
         let mut len: usize = 0;
         buf.put_u16(self.access_flags);
         buf.put_u16(self.name_index);
@@ -43,7 +46,7 @@ impl MethodInfo {
         buf.put_u16(self.attributes.len() as u16);
         len += 8;
         for attribute in &self.attributes {
-            len += attribute.to_buf(buf)?;
+            len += attribute.try_into(buf)?;
         }
         Ok(len)
     }
