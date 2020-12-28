@@ -1,7 +1,8 @@
-use crate::{FromToBytes, read_string, write_string};
+use crate::{read_string, write_string};
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 use std::fmt::{self, Formatter};
+use std::convert::TryFrom;
 
 /// Tag values for the constant pool entries
 #[derive(Debug, Clone)]
@@ -147,8 +148,81 @@ pub enum Constant {
     },
 }
 
-impl FromToBytes<Constant> for Constant {
-    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+impl TryFrom<&mut BytesMut> for Constant {
+    type Error = Error;
+
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
+        let tag = buf.get_u8();
+        let tag = Tag::from(tag);
+        match tag {
+            Tag::Class => {
+                let name_index = buf.get_u16();
+                Ok(Constant::Class { name_index })
+            }
+            Tag::FieldRef => {
+                let class_index = buf.get_u16();
+                let name_and_type_index = buf.get_u16();
+                Ok(Constant::FieldRef { class_index, name_and_type_index })
+            }
+            Tag::MethodRef => {
+                let class_index = buf.get_u16();
+                let name_and_type_index = buf.get_u16();
+                Ok(Constant::MethodRef { class_index, name_and_type_index })
+            }
+            Tag::InterfaceMethodRef => {
+                let class_index = buf.get_u16();
+                let name_and_type_index = buf.get_u16();
+                Ok(Constant::InterfaceMethodRef { class_index, name_and_type_index })
+            }
+            Tag::String => {
+                let string_index = buf.get_u16();
+                Ok(Constant::String { string_index })
+            }
+            Tag::Integer => {
+                let value = buf.get_i32();
+                Ok(Constant::Integer(value))
+            }
+            Tag::Float => {
+                let value = buf.get_f32();
+                Ok(Constant::Float(value))
+            }
+            Tag::Long => {
+                let value = buf.get_i64();
+                Ok(Constant::Long(value))
+            }
+            Tag::Double => {
+                let value = buf.get_f64();
+                Ok(Constant::Double(value))
+            }
+            Tag::NameAndType => {
+                let name_index = buf.get_u16();
+                let descriptor_index = buf.get_u16();
+                Ok(Constant::NameAndType { name_index, descriptor_index })
+            }
+            Tag::Utf8 => {
+                Ok(Constant::Utf8(read_string(buf)?))
+            }
+            Tag::MethodHandle => {
+                let reference_kind = buf.get_u8();
+                let reference_index = buf.get_u16();
+                Ok(Constant::MethodHandle { reference_kind, reference_index })
+            }
+            Tag::MethodType => {
+                let descriptor_index = buf.get_u16();
+                Ok(Constant::MethodType { descriptor_index })
+            }
+            Tag::InvokeDynamic => {
+                let bootstrap_method_attr_index = buf.get_u16();
+                let name_and_type_index = buf.get_u16();
+                Ok(Constant::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index })
+            }
+            _ => Err(Error::InvalidConstantTag(tag.into()))
+        }
+    }
+}
+
+impl Constant {
+    pub fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
         let mut len: usize = 1;
         match self {
             Constant::Class { name_index } => {
@@ -228,79 +302,6 @@ impl FromToBytes<Constant> for Constant {
             }
         }
         Ok(len)
-    }
-
-    fn from_buf(buf: &mut BytesMut) -> Result<Constant, Error> {
-        let tag = buf.get_u8();
-        let tag = Tag::from(tag);
-        match tag {
-            Tag::Class => {
-                let name_index = buf.get_u16();
-                Ok(Constant::Class { name_index })
-            }
-            Tag::FieldRef => {
-                let class_index = buf.get_u16();
-                let name_and_type_index = buf.get_u16();
-                Ok(Constant::FieldRef { class_index, name_and_type_index })
-            }
-            Tag::MethodRef => {
-                let class_index = buf.get_u16();
-                let name_and_type_index = buf.get_u16();
-                Ok(Constant::MethodRef { class_index, name_and_type_index })
-            }
-            Tag::InterfaceMethodRef => {
-                let class_index = buf.get_u16();
-                let name_and_type_index = buf.get_u16();
-                Ok(Constant::InterfaceMethodRef { class_index, name_and_type_index })
-            }
-            Tag::String => {
-                let string_index = buf.get_u16();
-                Ok(Constant::String { string_index })
-            }
-            Tag::Integer => {
-                let value = buf.get_i32();
-                Ok(Constant::Integer(value))
-            }
-            Tag::Float => {
-                let value = buf.get_f32();
-                Ok(Constant::Float(value))
-            }
-            Tag::Long => {
-                let value = buf.get_i64();
-                Ok(Constant::Long(value))
-            }
-            Tag::Double => {
-                let value = buf.get_f64();
-                Ok(Constant::Double(value))
-            }
-            Tag::NameAndType => {
-                let name_index = buf.get_u16();
-                let descriptor_index = buf.get_u16();
-                Ok(Constant::NameAndType { name_index, descriptor_index })
-            }
-            Tag::Utf8 => {
-                Ok(Constant::Utf8(read_string(buf)?))
-            }
-            Tag::MethodHandle => {
-                let reference_kind = buf.get_u8();
-                let reference_index = buf.get_u16();
-                Ok(Constant::MethodHandle { reference_kind, reference_index })
-            }
-            Tag::MethodType => {
-                let descriptor_index = buf.get_u16();
-                Ok(Constant::MethodType { descriptor_index })
-            }
-            Tag::InvokeDynamic => {
-                let bootstrap_method_attr_index = buf.get_u16();
-                let name_and_type_index = buf.get_u16();
-                Ok(Constant::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index })
-            }
-            _ => Err(Error::InvalidConstantTag(tag.into()))
-        }
-    }
-
-    fn length(&self) -> usize {
-        unimplemented!()
     }
 }
 

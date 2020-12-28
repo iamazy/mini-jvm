@@ -2,9 +2,10 @@ use crate::constant::Constant;
 use crate::field::FieldInfo;
 use crate::method::MethodInfo;
 use crate::attribute::Attribute;
-use crate::{FromToBytes, MAGIC, TryFromCp};
+use crate::{MAGIC, TryFromCp};
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
+use std::convert::TryFrom;
 
 #[derive(Debug, Clone)]
 pub struct ClassFile {
@@ -21,40 +22,10 @@ pub struct ClassFile {
     pub attributes: Vec<Attribute>,
 }
 
-impl FromToBytes<ClassFile> for ClassFile {
-    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
-        let mut len: usize = 0;
-        buf.put_u32(self.magic);
-        buf.put_u16(self.minor_version);
-        buf.put_u16(self.major_version);
-        buf.put_u16(self.constant_pool.len() as u16);
-        len += 10;
-        for constant in &self.constant_pool {
-            len += constant.to_buf(buf)?;
-        }
-        buf.put_u16(self.access_flags);
-        buf.put_u16(self.this_class);
-        buf.put_u16(self.super_class);
-        buf.put_u16(self.interfaces.len() as u16);
-        buf.put_u16(self.fields.len() as u16);
-        len += 10;
-        for field in &self.fields {
-            len += field.to_buf(buf)?;
-        }
-        buf.put_u16(self.methods.len() as u16);
-        len += 2;
-        for method in &self.methods {
-            len += method.to_buf(buf)?;
-        }
-        buf.put_u16(self.attributes.len() as u16);
-        len += 2;
-        for attribute in &self.attributes {
-            len += attribute.to_buf(buf)?;
-        }
-        Ok(len)
-    }
+impl TryFrom<&mut BytesMut> for ClassFile {
+    type Error = Error;
 
-    fn from_buf(buf: &mut BytesMut) -> Result<ClassFile, Error> {
+    fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
         let magic = buf.get_u32();
         assert_eq!(magic, MAGIC);
         let minor_version = buf.get_u16();
@@ -62,7 +33,7 @@ impl FromToBytes<ClassFile> for ClassFile {
         let constant_pool_count = buf.get_u16();
         let mut constant_pool: Vec<Constant> = Vec::with_capacity(constant_pool_count as usize - 1);
         for _ in 0..constant_pool_count - 1 {
-            constant_pool.push(Constant::from_buf(buf)?);
+            constant_pool.push(Constant::try_from(&mut *buf)?);
         }
         let access_flags = buf.get_u16();
         let this_class = buf.get_u16();
@@ -70,7 +41,7 @@ impl FromToBytes<ClassFile> for ClassFile {
         let interface_count = buf.get_u16();
         let mut interfaces: Vec<Constant> = vec![];
         for _ in 0..interface_count {
-            let constant = Constant::from_buf(buf)?;
+            let constant = Constant::try_from(&mut *buf)?;
             if let Constant::Class { .. } = constant {
                 interfaces.push(constant);
             } else {
@@ -106,9 +77,39 @@ impl FromToBytes<ClassFile> for ClassFile {
             attributes,
         })
     }
+}
 
-    fn length(&self) -> usize {
-        unimplemented!()
+impl ClassFile {
+    fn to_buf(&self, buf: &mut impl BufMut) -> Result<usize, Error> {
+        let mut len: usize = 0;
+        buf.put_u32(self.magic);
+        buf.put_u16(self.minor_version);
+        buf.put_u16(self.major_version);
+        buf.put_u16(self.constant_pool.len() as u16);
+        len += 10;
+        for constant in &self.constant_pool {
+            len += constant.to_buf(buf)?;
+        }
+        buf.put_u16(self.access_flags);
+        buf.put_u16(self.this_class);
+        buf.put_u16(self.super_class);
+        buf.put_u16(self.interfaces.len() as u16);
+        buf.put_u16(self.fields.len() as u16);
+        len += 10;
+        for field in &self.fields {
+            len += field.to_buf(buf)?;
+        }
+        buf.put_u16(self.methods.len() as u16);
+        len += 2;
+        for method in &self.methods {
+            len += method.to_buf(buf)?;
+        }
+        buf.put_u16(self.attributes.len() as u16);
+        len += 2;
+        for attribute in &self.attributes {
+            len += attribute.to_buf(buf)?;
+        }
+        Ok(len)
     }
 }
 
@@ -117,7 +118,7 @@ mod test {
     use std::io::Read;
     use bytes::{BytesMut, BufMut};
     use crate::class_file::ClassFile;
-    use crate::FromToBytes;
+    use std::convert::TryFrom;
 
     #[test]
     fn read_class_file() {
@@ -125,7 +126,7 @@ mod test {
         let bytes: Vec<u8> = file.bytes().map(|x| x.unwrap()).collect();
         let mut buf = BytesMut::with_capacity(64);
         buf.put_slice(bytes.as_slice());
-        let class_file = ClassFile::from_buf(&mut buf).unwrap();
+        let class_file = ClassFile::try_from(&mut buf).unwrap();
         println!("{:?}", class_file);
     }
 }
