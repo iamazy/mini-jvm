@@ -1,23 +1,19 @@
 use std::sync::Arc;
-use classfile::attribute::{Exception, LineNumber};
+use classfile::attribute::{Exception, LineNumber, CodeAttribute};
 use crate::basic_type::BasicType;
 use std::fmt::{self, Display, Formatter};
 use crate::oops::class::ClassPtr;
 use crate::oops::symbol::Symbol;
+use classfile::method::MethodInfo;
+use classfile::access_flags::AccessFlag;
 
 #[derive(Debug, Clone)]
 pub struct Method<'a> {
-    pub access_flags: u16,
     pub name: Arc<Symbol>,
-    pub descriptor: &'a String,
     pub signature: &'a String,
     // method holder
     pub class: Arc<ClassPtr>,
-    pub max_locals: usize,
-    pub max_stacks: usize,
-    pub code: Vec<u8>,
-    pub exception_table: Vec<Exception>,
-    pub line_number_table: Vec<LineNumber>
+    pub const_method: &'a MethodInfo
 }
 
 impl<'a> Method<'a> {
@@ -115,6 +111,37 @@ impl<'a> Method<'a> {
     pub fn print_method_descriptor(&self) {
         unimplemented!()
     }
+
+    // name
+    pub fn name(&self) -> &'a Symbol{
+        unimplemented!()
+    }
+
+    pub fn name_index(&self) -> u16 {
+        unimplemented!()
+    }
+
+    pub fn signature(&self) -> &'a Symbol {
+        unimplemented!()
+    }
+
+    pub fn signature_index(&self) -> u16 {
+        unimplemented!()
+    }
+
+    // generics support
+    pub fn generic_signature(&self) -> &'a Symbol {
+        unimplemented!()
+    }
+
+    pub fn generic_signature_index(&self) -> u16 {
+        unimplemented!()
+    }
+
+    pub fn annotations(&self)
+
+
+
 }
 
 impl<'a> Display for Method<'a> {
