@@ -14,6 +14,7 @@ pub enum FieldType<'a> {
     Short,
     Boolean,
     Array(Box<FieldType<'a>>),
+    Generic
 }
 
 impl<'a> Display for FieldType<'a> {
