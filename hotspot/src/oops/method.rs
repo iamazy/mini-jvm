@@ -5,14 +5,14 @@ use std::fmt::{self, Display, Formatter};
 use crate::oops::class::ClassPtr;
 use crate::oops::symbol::Symbol;
 use classfile::method::MethodInfo;
-use classfile::access_flags::AccessFlag;
+use classfile::access_flags::{AccessFlag, AccessFlags};
 
 #[derive(Debug, Clone)]
 pub struct Method<'a> {
-    pub name: Arc<Symbol>,
+    pub name: &'a Symbol,
     pub signature: &'a String,
     // method holder
-    pub class: Arc<ClassPtr>,
+    pub class: ClassPtr,
     pub const_method: &'a MethodInfo
 }
 
@@ -27,48 +27,52 @@ impl<'a> Method<'a> {
     }
 
     // Access flags
+    pub fn access_flags(&self) -> &AccessFlags {
+        &AccessFlags(self.const_method.access_flags)
+    }
+
     pub fn is_public(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_public()
     }
 
     pub fn is_private(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_private()
     }
 
     pub fn is_protected(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_protected()
     }
 
     pub fn is_package_private(&self) -> bool {
-        unimplemented!()
+        !self.is_public() && !self.is_private() && !self.is_protected()
     }
 
     pub fn is_static(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_static()
     }
 
     pub fn is_final(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_final()
     }
 
     pub fn is_synchronized(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_synchronized()
     }
 
     pub fn is_native(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_native()
     }
 
     pub fn is_abstract(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_abstract()
     }
 
     pub fn is_strict(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_strict()
     }
 
     pub fn is_synthetic(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_synthetic()
     }
 
     // interface method declared with 'default' - excludes private interface methods
@@ -118,7 +122,7 @@ impl<'a> Method<'a> {
     }
 
     pub fn name_index(&self) -> u16 {
-        unimplemented!()
+        self.const_method.name_index
     }
 
     pub fn signature(&self) -> &'a Symbol {
@@ -138,7 +142,21 @@ impl<'a> Method<'a> {
         unimplemented!()
     }
 
-    pub fn annotations(&self)
+    pub fn annotations(&self) -> Option<Vec<u8>> {
+        unimplemented!()
+    }
+
+    pub fn parameter_annotations(&self) -> Option<Vec<u8>> {
+        unimplemented!()
+    }
+
+    pub fn type_annotations(&self) -> Option<Vec<u8>> {
+        unimplemented!()
+    }
+
+    pub fn annotation_default(&self) -> Option<Vec<u8>> {
+        unimplemented!()
+    }
 
 
 
