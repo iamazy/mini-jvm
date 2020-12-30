@@ -3,7 +3,7 @@
 extern crate bitflags;
 use bytes::{BufMut, BytesMut, Buf, Bytes};
 use crate::error::Error;
-use crate::constant::Constant;
+use crate::constant::ConstantPool;
 
 pub mod class_file;
 pub mod constant;
@@ -51,5 +51,5 @@ pub trait TryInto<T, S>: Sized {
 
 pub trait TryFromCp<T>: Sized {
     type Error;
-    fn try_from_cp(value: T, constant_pool: &Vec<Constant>) -> Result<Self, Self::Error>;
+    fn try_from_cp(value: T, constant_pool: &ConstantPool) -> Result<Self, Self::Error>;
 }
