@@ -3,6 +3,7 @@ use std::fmt::{self, Display, Formatter};
 
 pub mod class;
 pub mod method;
+pub mod field;
 pub mod symbol;
 pub mod array;
 
