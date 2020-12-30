@@ -81,8 +81,8 @@ impl From<u8> for Tag {
 ///     u1 info[];
 /// }
 ///```
-pub fn get_utf8(constant_pool: &Vec<Constant>, index: usize) -> Option<&String> {
-    let constant = &constant_pool[index - 1];
+pub fn get_utf8(constant_pool: &ConstantPool, index: usize) -> Option<&String> {
+    let constant = &constant_pool.0[index - 1];
     return if let Constant::Utf8(string) = constant {
         Some(&string)
     } else {
@@ -90,14 +90,17 @@ pub fn get_utf8(constant_pool: &Vec<Constant>, index: usize) -> Option<&String> 
     };
 }
 
-pub fn get_class_name(constant_pool: &Vec<Constant>, index: usize) -> Option<&String> {
-    let constant = &constant_pool[index - 1];
+pub fn get_class_name(constant_pool: &ConstantPool, index: usize) -> Option<&String> {
+    let constant = &constant_pool.0[index - 1];
     return if let Constant::Class { name_index } = constant {
         get_utf8(constant_pool, *name_index as usize)
     } else {
         None
     };
 }
+
+#[derive(Debug, Clone)]
+pub struct ConstantPool(pub Vec<Constant>);
 
 
 #[derive(Debug, Clone)]
