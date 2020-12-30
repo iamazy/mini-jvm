@@ -1,5 +1,6 @@
-use classfile::constant::Constant;
+use classfile::constant::ConstantPool;
 
 pub struct ConstantPoolCache<'a> {
-    constant_pool: &'a Vec<Constant>
+    constant_pool: &'a ConstantPool,
+
 }
