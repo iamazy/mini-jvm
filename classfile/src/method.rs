@@ -2,7 +2,7 @@
 use crate::attribute::Attribute;
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
-use crate::constant::Constant;
+use crate::constant::ConstantPool;
 use crate::{TryFromCp, TryInto};
 
 #[derive(Debug, Clone)]
@@ -16,7 +16,7 @@ pub struct MethodInfo {
 impl TryFromCp<&mut BytesMut> for MethodInfo {
     type Error = Error;
 
-    fn try_from_cp(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<Self, Self::Error> {
+    fn try_from_cp(buf: &mut BytesMut, constant_pool: &ConstantPool) -> Result<Self, Self::Error> {
         let access_flags = buf.get_u16();
         let name_index = buf.get_u16();
         let descriptor_index = buf.get_u16();
