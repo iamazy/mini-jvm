@@ -1,3 +1,67 @@
+#[derive(Debug, Clone)]
+pub struct AccessFlags(u16);
+
+impl AccessFlags {
+
+    pub fn is_public(&self) -> bool {
+        self.0 & AccessFlag::Public.into() != 0
+    }
+
+    pub fn is_private(&self) -> bool {
+        self.0 & AccessFlag::Private.into() != 0
+    }
+
+    pub fn is_protected(&self) -> bool {
+        self.0 & AccessFlag::Protected.into() != 0
+    }
+
+    pub fn is_static(&self) -> bool {
+        self.0 & AccessFlag::Static.into() != 0
+    }
+
+    pub fn is_final(&self) -> bool {
+        self.0 & AccessFlag::Final.into() != 0
+    }
+
+    pub fn is_synchronized(&self) -> bool {
+        self.0 & AccessFlag::Synchronized.into() != 0
+    }
+
+    pub fn is_super(&self) -> bool {
+        self.0 & AccessFlag::Super.into() != 0
+    }
+
+    pub fn is_volatile(&self) -> bool {
+        self.0 & AccessFlag::Volatile.into() != 0
+    }
+
+    pub fn is_transient(&self) -> bool {
+        self.0 & AccessFlag::Transient.into() != 0
+    }
+
+    pub fn is_native(&self) -> bool {
+        self.0 as usize & AccessFlag::Native.into() != 0
+    }
+
+    pub fn is_interface(&self) -> bool {
+        self.0 & AccessFlag::Interface.into() != 0
+    }
+
+    pub fn is_abstract(&self) -> bool {
+        self.0 & AccessFlag::Abstract.into() != 0
+    }
+
+    pub fn is_strict(&self) -> bool {
+        self.0 & AccessFlag::Strict.into() != 0
+    }
+
+    // Attribute flags
+    pub fn is_synthetic(&self) -> bool {
+        self.0 & AccessFlag::Synthetic.into() != 0
+    }
+
+}
+
 /// Class access and property modifiers
 #[derive(Debug, Clone)]
 pub enum AccessFlag {
@@ -45,3 +109,4 @@ impl Into<u16> for AccessFlag {
         }
     }
 }
+
