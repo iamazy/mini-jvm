@@ -3,7 +3,7 @@
 use crate::{TryFromCp, TryInto};
 use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
-use crate::constant::{Constant, get_utf8};
+use crate::constant::{get_utf8, ConstantPool};
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone)]
@@ -127,7 +127,7 @@ pub enum Attribute {
 impl TryFromCp<&mut BytesMut> for Attribute {
     type Error = Error;
 
-    fn try_from_cp(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<Self, Self::Error> {
+    fn try_from_cp(buf: &mut BytesMut, constant_pool: &ConstantPool) -> Result<Self, Self::Error> {
         let attribute_name_index = buf.get_u16();
         let attribute_length = buf.get_u32();
         let attribute_name = get_utf8(constant_pool, attribute_name_index as usize).unwrap();
@@ -656,7 +656,7 @@ pub struct CodeAttribute {
 impl TryFromCp<&mut BytesMut> for CodeAttribute {
     type Error = Error;
 
-    fn try_from_cp(buf: &mut BytesMut, constant_pool: &Vec<Constant>) -> Result<Self, Self::Error> {
+    fn try_from_cp(buf: &mut BytesMut, constant_pool: &ConstantPool) -> Result<Self, Self::Error> {
         let max_stack = buf.get_u16();
         let max_locals = buf.get_u16();
         let code_length = buf.get_u32();
