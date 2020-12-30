@@ -5,15 +5,16 @@ use std::fmt::{self, Display, Formatter};
 use crate::oops::class::ClassPtr;
 use crate::oops::symbol::Symbol;
 use classfile::method::MethodInfo;
-use classfile::access_flags::{AccessFlag, AccessFlags};
+use classfile::access_flags::AccessFlags;
 
 #[derive(Debug, Clone)]
 pub struct Method<'a> {
-    pub name: &'a Symbol,
-    pub signature: &'a String,
+    pub access_flags: AccessFlags,
     // method holder
     pub class: ClassPtr,
-    pub const_method: &'a MethodInfo
+    // offset in class method list
+    pub offset: usize,
+    pub method_info: &'a MethodInfo
 }
 
 impl<'a> Method<'a> {
@@ -28,7 +29,7 @@ impl<'a> Method<'a> {
 
     // Access flags
     pub fn access_flags(&self) -> &AccessFlags {
-        &AccessFlags(self.const_method.access_flags)
+        &self.access_flags
     }
 
     pub fn is_public(&self) -> bool {
@@ -122,7 +123,7 @@ impl<'a> Method<'a> {
     }
 
     pub fn name_index(&self) -> u16 {
-        self.const_method.name_index
+        self.method_info.name_index
     }
 
     pub fn signature(&self) -> &'a Symbol {
