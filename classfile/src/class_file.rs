@@ -1,4 +1,4 @@
-use crate::constant::Constant;
+use crate::constant::{Constant, ConstantPool};
 use crate::field::FieldInfo;
 use crate::method::MethodInfo;
 use crate::attribute::Attribute;
@@ -12,7 +12,7 @@ pub struct ClassFile {
     pub magic: u32,
     pub minor_version: u16,
     pub major_version: u16,
-    pub constant_pool: Vec<Constant>,
+    pub constant_pool: ConstantPool,
     pub access_flags: u16,
     pub this_class: u16,
     pub super_class: u16,
@@ -31,9 +31,10 @@ impl TryFrom<&mut BytesMut> for ClassFile {
         let minor_version = buf.get_u16();
         let major_version = buf.get_u16();
         let constant_pool_count = buf.get_u16();
-        let mut constant_pool: Vec<Constant> = Vec::with_capacity(constant_pool_count as usize - 1);
+        let constant_pool: Vec<Constant> = Vec::with_capacity(constant_pool_count as usize - 1);
+        let mut constant_pool = ConstantPool(constant_pool);
         for _ in 0..constant_pool_count - 1 {
-            constant_pool.push(Constant::try_from(&mut *buf)?);
+            constant_pool.0.push(Constant::try_from(&mut *buf)?);
         }
         let access_flags = buf.get_u16();
         let this_class = buf.get_u16();
@@ -88,9 +89,9 @@ impl<T> TryInto<&mut T, usize> for ClassFile where
         buf.put_u32(self.magic);
         buf.put_u16(self.minor_version);
         buf.put_u16(self.major_version);
-        buf.put_u16(self.constant_pool.len() as u16);
+        buf.put_u16(self.constant_pool.0.len() as u16);
         len += 10;
-        for constant in &self.constant_pool {
+        for constant in &self.constant_pool.0 {
             len += constant.to_buf(buf)?;
         }
         buf.put_u16(self.access_flags);
