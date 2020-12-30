@@ -1,6 +1,7 @@
 use std::fmt::{self, Display, Formatter};
 use std::sync::Arc;
 use crate::oops::symbol::Symbol;
+use classfile::access_flags::AccessFlags;
 
 #[derive(Debug, Clone)]
 pub struct ClassPtr(u64);
@@ -24,7 +25,7 @@ impl Drop for ClassPtr {
 
 #[derive(Debug, Clone)]
 pub struct Class {
-    pub access_flags: u16,
+    pub access_flags: AccessFlags,
     // java/lang/String, etc
     pub name: Arc<Symbol>,
     // None for java/lang/Object
