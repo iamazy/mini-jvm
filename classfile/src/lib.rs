@@ -1,4 +1,6 @@
 #[allow(unused)]
+#[macro_use]
+extern crate bitflags;
 use bytes::{BufMut, BytesMut, Buf, Bytes};
 use crate::error::Error;
 use crate::constant::Constant;
