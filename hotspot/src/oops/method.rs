@@ -6,6 +6,7 @@ use crate::oops::class::ClassPtr;
 use crate::oops::symbol::Symbol;
 use classfile::method::MethodInfo;
 use classfile::access_flags::AccessFlags;
+use classfile::constant::ConstantPool;
 
 #[derive(Debug, Clone)]
 pub struct Method<'a> {
@@ -14,7 +15,7 @@ pub struct Method<'a> {
     pub class: ClassPtr,
     // offset in class method list
     pub offset: usize,
-    pub method_info: &'a MethodInfo
+    pub method_info: &'a MethodInfo<'a>
 }
 
 impl<'a> Method<'a> {
@@ -159,8 +160,13 @@ impl<'a> Method<'a> {
         unimplemented!()
     }
 
+    pub fn max_locals(&self) -> usize {
+        self.code.max_locals as usize
+    }
 
-
+    pub fn max_stack(&self) -> usize {
+        self.code.max_stack as usize
+    }
 }
 
 impl<'a> Display for Method<'a> {
