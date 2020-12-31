@@ -4,16 +4,18 @@ use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
 use crate::constant::ConstantPool;
 use crate::{TryFromCp, TryInto};
+use crate::attribute::CodeAttribute;
 
 #[derive(Debug, Clone)]
-pub struct MethodInfo {
+pub struct MethodInfo<'a> {
     pub access_flags: u16,
     pub name_index: u16,
     pub descriptor_index: u16,
     pub attributes: Vec<Attribute>,
+    pub code: Option<&'a CodeAttribute>,
 }
 
-impl TryFromCp<&mut BytesMut> for MethodInfo {
+impl<'a> TryFromCp<&mut BytesMut> for MethodInfo<'a> {
     type Error = Error;
 
     fn try_from_cp(buf: &mut BytesMut, constant_pool: &ConstantPool) -> Result<Self, Self::Error> {
@@ -22,19 +24,25 @@ impl TryFromCp<&mut BytesMut> for MethodInfo {
         let descriptor_index = buf.get_u16();
         let attribute_count = buf.get_u16();
         let mut attributes: Vec<Attribute> = vec![];
+        let mut code_attr = None;
         for _ in 0..attribute_count {
-            attributes.push(Attribute::try_from_cp(buf, constant_pool)?);
+            let attribute = Attribute::try_from_cp(buf, constant_pool)?;
+            // if let Attribute::Code { ref code, .. } = attribute {
+            //     code_attr = Some(code);
+            // }
+            attributes.push(attribute);
         }
         Ok(MethodInfo {
             access_flags,
             name_index,
             descriptor_index,
             attributes,
+            code: code_attr
         })
     }
 }
 
-impl<T> TryInto<&mut T, usize> for MethodInfo where
+impl<'a, T> TryInto<&mut T, usize> for MethodInfo<'a> where
     T: BufMut {
     type Error = Error;
 
