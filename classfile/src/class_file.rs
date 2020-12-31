@@ -8,7 +8,7 @@ use crate::error::Error;
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone)]
-pub struct ClassFile {
+pub struct ClassFile<'a> {
     pub magic: u32,
     pub minor_version: u16,
     pub major_version: u16,
@@ -18,11 +18,11 @@ pub struct ClassFile {
     pub super_class: u16,
     pub interfaces: Vec<Constant>,
     pub fields: Vec<FieldInfo>,
-    pub methods: Vec<MethodInfo>,
+    pub methods: Vec<MethodInfo<'a>>,
     pub attributes: Vec<Attribute>,
 }
 
-impl TryFrom<&mut BytesMut> for ClassFile {
+impl<'a> TryFrom<&mut BytesMut> for ClassFile<'a> {
     type Error = Error;
 
     fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
@@ -80,7 +80,7 @@ impl TryFrom<&mut BytesMut> for ClassFile {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for ClassFile where
+impl<'a, T> TryInto<&mut T, usize> for ClassFile<'a> where
     T: BufMut {
     type Error = Error;
 
