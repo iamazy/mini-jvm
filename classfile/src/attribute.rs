@@ -7,7 +7,14 @@ use crate::constant::{get_utf8, ConstantPool};
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone)]
-pub enum Attribute {
+pub struct Attribute {
+    pub attribute_name_index: u16,
+    pub attribute_length: u32,
+    pub attr_type: AttributeType
+}
+
+#[derive(Debug, Clone)]
+pub enum AttributeType {
     ConstantValue {
         attribute_name_index: u16,
         attribute_length: u32,
