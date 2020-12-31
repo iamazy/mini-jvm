@@ -1,7 +1,7 @@
-use std::fmt::{self, Display, Formatter};
-use std::sync::Arc;
 use crate::oops::symbol::Symbol;
 use classfile::access_flags::AccessFlags;
+use std::fmt::{self, Display, Formatter};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct ClassPtr(u64);
@@ -16,12 +16,9 @@ impl ClassPtr {
 
 impl Drop for ClassPtr {
     fn drop(&mut self) {
-        let _ = unsafe {
-            Box::from_raw(self.0 as *mut Class)
-        };
+        let _ = unsafe { Box::from_raw(self.0 as *mut Class) };
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct Class {
@@ -31,11 +28,10 @@ pub struct Class {
     // None for java/lang/Object
     pub super_class: Option<Arc<ClassPtr>>,
     // First subclass (None if none); sub_class.next_sibling() is next one
-    pub sub_class: Option<Arc<ClassPtr>>
+    pub sub_class: Option<Arc<ClassPtr>>,
 }
 
 impl Class {
-
     // pub fn get_name<'a>(&self, constant_pool: &'a Vec<Constant>) -> Option<&'a String>{
     //     if let Constant::Class { name_index } = self {
     //         return get_utf8(constant_pool, *name_index as usize)
@@ -122,5 +118,5 @@ pub enum ClassState {
     // initialized (successful final state)
     FullyInitialized,
     // error happened during initialization
-    InitializationError
+    InitializationError,
 }

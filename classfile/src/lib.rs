@@ -1,21 +1,21 @@
 #[allow(unused)]
 #[macro_use]
 extern crate bitflags;
-use bytes::{BufMut, BytesMut, Buf, Bytes};
-use crate::error::Error;
 use crate::constant::ConstantPool;
+use crate::error::Error;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-pub mod class_file;
-pub mod constant;
-pub mod field;
-pub mod attribute;
-pub mod method;
-pub mod class_reader;
-pub mod error;
 pub mod access_flags;
+pub mod attribute;
+pub mod class_file;
+pub mod class_reader;
+pub mod constant;
 pub mod descriptor;
-pub mod package;
+pub mod error;
+pub mod field;
+pub mod method;
 pub mod module;
+pub mod package;
 
 pub const MAGIC: u32 = 0xCAFEBABE;
 

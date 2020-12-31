@@ -1,7 +1,10 @@
 use crate::oops::class::ClassPtr;
-use std::sync::Arc;
 use crate::oops::Oop;
-use crate::types::{CharArrayPtr, BoolArrayPtr, ByteArrayPtr, IntArrayPtr, LongArrayPtr, ShortArrayPtr, FloatArrayPtr, DoubleArrayPtr};
+use crate::types::{
+    BoolArrayPtr, ByteArrayPtr, CharArrayPtr, DoubleArrayPtr, FloatArrayPtr, IntArrayPtr,
+    LongArrayPtr, ShortArrayPtr,
+};
+use std::sync::Arc;
 
 /// The layout of array Oops is:
 ///
@@ -11,7 +14,7 @@ use crate::types::{CharArrayPtr, BoolArrayPtr, ByteArrayPtr, IntArrayPtr, LongAr
 #[derive(Debug, Clone)]
 pub struct ArrayOop {
     pub class: Arc<ClassPtr>,
-    pub elements: Vec<Oop>
+    pub elements: Vec<Oop>,
 }
 
 #[derive(Debug, Clone)]
@@ -23,12 +26,8 @@ pub enum TypeArrayOop {
     Long(LongArrayPtr),
     Short(ShortArrayPtr),
     Float(FloatArrayPtr),
-    Double(DoubleArrayPtr)
+    Double(DoubleArrayPtr),
 }
 
 #[derive(Debug, Clone)]
-pub struct ObjArrayOop {
-
-}
-
-
+pub struct ObjArrayOop {}

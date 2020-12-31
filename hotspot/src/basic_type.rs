@@ -19,13 +19,3 @@ pub enum BasicType {
     Conflict = 19,
     Illegal = 99,
 }
-
-
-
-
-
-
-
-
-
-

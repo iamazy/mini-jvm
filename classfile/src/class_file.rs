@@ -1,14 +1,14 @@
+use crate::attribute::Attribute;
 use crate::constant::{Constant, ConstantPool};
+use crate::error::Error;
 use crate::field::FieldInfo;
 use crate::method::MethodInfo;
-use crate::attribute::Attribute;
-use crate::{MAGIC, TryFromCp, TryInto};
-use bytes::{BytesMut, BufMut, Buf};
-use crate::error::Error;
+use crate::{TryFromCp, TryInto, MAGIC};
+use bytes::{Buf, BufMut, BytesMut};
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone)]
-pub struct ClassFile<'a> {
+pub struct ClassFile {
     pub magic: u32,
     pub minor_version: u16,
     pub major_version: u16,
@@ -18,11 +18,11 @@ pub struct ClassFile<'a> {
     pub super_class: u16,
     pub interfaces: Vec<Constant>,
     pub fields: Vec<FieldInfo>,
-    pub methods: Vec<MethodInfo<'a>>,
+    pub methods: Vec<MethodInfo>,
     pub attributes: Vec<Attribute>,
 }
 
-impl<'a> TryFrom<&mut BytesMut> for ClassFile<'a> {
+impl TryFrom<&mut BytesMut> for ClassFile {
     type Error = Error;
 
     fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
@@ -80,8 +80,10 @@ impl<'a> TryFrom<&mut BytesMut> for ClassFile<'a> {
     }
 }
 
-impl<'a, T> TryInto<&mut T, usize> for ClassFile<'a> where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for ClassFile
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -119,10 +121,10 @@ impl<'a, T> TryInto<&mut T, usize> for ClassFile<'a> where
 
 #[cfg(test)]
 mod test {
-    use std::io::Read;
-    use bytes::{BytesMut, BufMut};
     use crate::class_file::ClassFile;
+    use bytes::{BufMut, BytesMut};
     use std::convert::TryFrom;
+    use std::io::Read;
 
     #[test]
     fn read_class_file() {

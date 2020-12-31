@@ -1,19 +1,16 @@
-use crate::runtime::Slot;
 use crate::oops::{Oop, OopRef};
+use crate::runtime::Slot;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct LocalVars {
-    slots: Vec<Slot>
+    slots: Vec<Slot>,
 }
 
 impl LocalVars {
-
     pub fn new(size: usize) -> Self {
         let slots = vec![Slot::Nop; size];
-        LocalVars {
-            slots
-        }
+        LocalVars { slots }
     }
 
     pub fn set_int(&mut self, pos: usize, value: i32) {
@@ -23,7 +20,7 @@ impl LocalVars {
     pub fn get_int(&self, pos: usize) -> i32 {
         match self.slots.get(pos - 1).unwrap() {
             Slot::Oop(Oop::Int(value)) => *value,
-            slot => panic!("Invalid slot: {:?}", slot)
+            slot => panic!("Invalid slot: {:?}", slot),
         }
     }
 
@@ -34,7 +31,7 @@ impl LocalVars {
     pub fn get_long(&self, pos: usize) -> i64 {
         match self.slots.get(pos - 1).unwrap() {
             Slot::Oop(Oop::Long(value)) => *value,
-            slot => panic!("Invalid slot: {:?}", slot)
+            slot => panic!("Invalid slot: {:?}", slot),
         }
     }
 
@@ -45,7 +42,7 @@ impl LocalVars {
     pub fn get_float(&mut self, pos: usize) -> f32 {
         match self.slots.get(pos - 1).unwrap() {
             Slot::Oop(Oop::Float(value)) => *value,
-            slot => panic!("Invalid slot: {:?}", slot)
+            slot => panic!("Invalid slot: {:?}", slot),
         }
     }
 
@@ -56,7 +53,7 @@ impl LocalVars {
     pub fn get_double(&self, pos: usize) -> f64 {
         match self.slots.get(pos - 1).unwrap() {
             Slot::Oop(Oop::Double(value)) => *value,
-            slot => panic!("Invalid slot: {:?}", slot)
+            slot => panic!("Invalid slot: {:?}", slot),
         }
     }
 
@@ -67,7 +64,7 @@ impl LocalVars {
     pub fn get_ref(&self, pos: usize) -> Arc<OopRef> {
         match self.slots.get(pos - 1).unwrap() {
             Slot::Oop(Oop::Reference(value)) => value.clone(),
-            slot => panic!("Invalid slot: {:?}", slot)
+            slot => panic!("Invalid slot: {:?}", slot),
         }
     }
 }

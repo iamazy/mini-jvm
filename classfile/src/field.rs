@@ -1,8 +1,8 @@
 use crate::attribute::Attribute;
-use bytes::{BytesMut, BufMut, Buf};
-use crate::error::Error;
 use crate::constant::ConstantPool;
+use crate::error::Error;
 use crate::{TryFromCp, TryInto};
+use bytes::{Buf, BufMut, BytesMut};
 
 #[derive(Debug, Clone)]
 pub struct FieldInfo {
@@ -33,8 +33,10 @@ impl TryFromCp<&mut BytesMut> for FieldInfo {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for FieldInfo where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for FieldInfo
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {

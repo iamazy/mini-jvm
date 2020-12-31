@@ -65,5 +65,5 @@
 #[derive(Debug, Clone)]
 pub struct Symbol {
     pub length: u16,
-    pub body: [u8; 2]
+    pub body: [u8; 2],
 }

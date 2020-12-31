@@ -2,7 +2,6 @@
 pub struct AccessFlags(u16);
 
 impl AccessFlags {
-
     pub fn is_public(&self) -> bool {
         self.0 & AccessFlag::ACC_PUBLIC.bits != 0
     }
@@ -59,7 +58,6 @@ impl AccessFlags {
     pub fn is_synthetic(&self) -> bool {
         self.0 & AccessFlag::ACC_SYNTHETIC.bits != 0
     }
-
 }
 
 bitflags! {
@@ -84,4 +82,3 @@ bitflags! {
         const ACC_ENUM = 0x4000;
     }
 }
-

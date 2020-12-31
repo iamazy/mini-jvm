@@ -7,7 +7,7 @@ pub struct JavaThread {
     pub exception: Option<Oop>,
     pub is_active: bool,
     pub thread_state: JavaThreadState,
-    pub safe_point_state: Option<ThreadSafePointState>
+    pub safe_point_state: Option<ThreadSafePointState>,
 }
 
 #[derive(Debug, Clone)]
@@ -23,7 +23,7 @@ pub enum JavaThreadState {
     InJavaTrans = 9,
     Blocked = 10,
     BlockedTrans = 11,
-    MaxState = 12
+    MaxState = 12,
 }
 
 #[derive(Debug, Clone)]
@@ -31,5 +31,5 @@ pub struct ThreadSafePointState {
     pub thread: Box<JavaThread>,
     pub safe_point_safe: bool,
     pub safe_point_id: u64,
-    pub next: Arc<Box<ThreadSafePointState>>
+    pub next: Arc<Box<ThreadSafePointState>>,
 }

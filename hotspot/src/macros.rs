@@ -9,5 +9,5 @@ macro_rules! def_ptr {
 macro_rules! def_ref {
     ($name: ident, $t: ty) => {
         pub type $name = std::sync::Arc<Box<$t>>;
-    }
+    };
 }

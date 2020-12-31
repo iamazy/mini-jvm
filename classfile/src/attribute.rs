@@ -1,134 +1,16 @@
 #![allow(dead_code)]
 
-use crate::{TryFromCp, TryInto};
-use bytes::{BytesMut, BufMut, Buf};
-use crate::error::Error;
 use crate::constant::{get_utf8, ConstantPool};
+use crate::error::Error;
+use crate::{TryFromCp, TryInto};
+use bytes::{Buf, BufMut, BytesMut};
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone)]
 pub struct Attribute {
     pub attribute_name_index: u16,
     pub attribute_length: u32,
-    pub attr_type: AttributeType
-}
-
-#[derive(Debug, Clone)]
-pub enum AttributeType {
-    ConstantValue {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        constant_value_index: u16,
-    },
-    Code {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        code: CodeAttribute,
-    },
-    StackMapTable {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        entries: Vec<StackMap>,
-    },
-    Exceptions {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        exception_index_table: Vec<u16>,
-    },
-    InnerClasses {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        classes: Vec<InnerClass>,
-    },
-    EnclosingMethod {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        class_index: u16,
-        method_index: u16,
-    },
-    Synthetic {
-        attribute_name_index: u16,
-        attribute_length: u32,
-    },
-    Signature {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        signature_index: u16,
-    },
-    SourceFile {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        sourcefile_index: u16,
-    },
-    SourceDebugExtension {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        debug_extension: Vec<u8>,
-    },
-    LineNumberTable {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        line_number_table: Vec<LineNumber>,
-    },
-    LocalVariableTable {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        local_variable_table: Vec<LocalVariable>,
-    },
-    LocalVariableTypeTable {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        local_variable_type_table: Vec<LocalVariableType>,
-    },
-    Deprecated {
-        attribute_name_index: u16,
-        attribute_length: u32,
-    },
-    RuntimeVisibleAnnotations {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        annotations: Vec<Annotation>,
-    },
-    RuntimeInvisibleAnnotations {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        annotations: Vec<Annotation>,
-    },
-    RuntimeVisibleParameterAnnotations {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        parameter_annotations: Vec<ParameterAnnotation>,
-    },
-    RuntimeInvisibleParameterAnnotations {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        parameter_annotations: Vec<ParameterAnnotation>,
-    },
-    RuntimeVisibleTypeAnnotations {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        annotations: Vec<TypeAnnotation>,
-    },
-    RuntimeInvisibleTypeAnnotations {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        annotations: Vec<TypeAnnotation>,
-    },
-    AnnotationDefault {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        default_value: ElementValue,
-    },
-    BootstrapMethods {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        bootstrap_methods: Vec<BootstrapMethod>,
-    },
-    MethodParameters {
-        attribute_name_index: u16,
-        attribute_length: u32,
-        parameters: Vec<MethodParameter>,
-    },
+    pub attr_type: AttributeType,
 }
 
 impl TryFromCp<&mut BytesMut> for Attribute {
@@ -138,33 +20,23 @@ impl TryFromCp<&mut BytesMut> for Attribute {
         let attribute_name_index = buf.get_u16();
         let attribute_length = buf.get_u32();
         let attribute_name = get_utf8(constant_pool, attribute_name_index as usize).unwrap();
-        return match attribute_name.as_str() {
+        let attr_type = match attribute_name.as_str() {
             "ConstantValue" => {
                 let constant_value_index = buf.get_u16();
-                Ok(Attribute::ConstantValue {
-                    attribute_name_index,
-                    attribute_length,
+                Ok(AttributeType::ConstantValue {
                     constant_value_index,
                 })
             }
-            "Code" => {
-                Ok(Attribute::Code {
-                    attribute_name_index,
-                    attribute_length,
-                    code: CodeAttribute::try_from_cp(buf, constant_pool)?,
-                })
-            }
+            "Code" => Ok(AttributeType::Code {
+                code: CodeAttribute::try_from_cp(buf, constant_pool)?,
+            }),
             "StackMapTable" => {
                 let number_of_entries = buf.get_u16();
                 let mut entries: Vec<StackMap> = vec![];
                 for _ in 0..number_of_entries {
                     entries.push(StackMap::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::StackMapTable {
-                    attribute_name_index,
-                    attribute_length,
-                    entries,
-                })
+                Ok(AttributeType::StackMapTable { entries })
             }
             "Exceptions" => {
                 let number_of_exceptions = buf.get_u16();
@@ -172,9 +44,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..number_of_exceptions {
                     exception_index_table.push(buf.get_u16());
                 }
-                Ok(Attribute::Exceptions {
-                    attribute_name_index,
-                    attribute_length,
+                Ok(AttributeType::Exceptions {
                     exception_index_table,
                 })
             }
@@ -184,52 +54,31 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..number_of_classes {
                     classes.push(InnerClass::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::InnerClasses {
-                    attribute_name_index,
-                    attribute_length,
-                    classes,
-                })
+                Ok(AttributeType::InnerClasses { classes })
             }
             "EnclosingMethod" => {
                 let class_index = buf.get_u16();
                 let method_index = buf.get_u16();
-                Ok(Attribute::EnclosingMethod {
-                    attribute_name_index,
-                    attribute_length,
+                Ok(AttributeType::EnclosingMethod {
                     class_index,
                     method_index,
                 })
             }
-            "Synthetic" => Ok(Attribute::Synthetic {
-                attribute_name_index,
-                attribute_length,
-            }),
+            "Synthetic" => Ok(AttributeType::Synthetic),
             "Signature" => {
                 let signature_index = buf.get_u16();
-                Ok(Attribute::Signature {
-                    attribute_name_index,
-                    attribute_length,
-                    signature_index,
-                })
+                Ok(AttributeType::Signature { signature_index })
             }
             "SourceFile" => {
                 let sourcefile_index = buf.get_u16();
-                Ok(Attribute::SourceFile {
-                    attribute_name_index,
-                    attribute_length,
-                    sourcefile_index,
-                })
+                Ok(AttributeType::SourceFile { sourcefile_index })
             }
             "SourceDebugExtension" => {
                 let mut debug_extension: Vec<u8> = vec![];
                 for _ in 0..attribute_length {
                     debug_extension.push(buf.get_u8());
                 }
-                Ok(Attribute::SourceDebugExtension {
-                    attribute_name_index,
-                    attribute_length,
-                    debug_extension,
-                })
+                Ok(AttributeType::SourceDebugExtension { debug_extension })
             }
             "LineNumberTable" => {
                 let line_number_table_length = buf.get_u16();
@@ -237,11 +86,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..line_number_table_length {
                     line_number_table.push(LineNumber::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::LineNumberTable {
-                    attribute_name_index,
-                    attribute_length,
-                    line_number_table,
-                })
+                Ok(AttributeType::LineNumberTable { line_number_table })
             }
             "LocalVariableTable" => {
                 let local_variable_table_length = buf.get_u16();
@@ -249,9 +94,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..local_variable_table_length {
                     local_variable_table.push(LocalVariable::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::LocalVariableTable {
-                    attribute_name_index,
-                    attribute_length,
+                Ok(AttributeType::LocalVariableTable {
                     local_variable_table,
                 })
             }
@@ -261,27 +104,18 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..local_variable_type_table_length {
                     local_variable_type_table.push(LocalVariableType::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::LocalVariableTypeTable {
-                    attribute_name_index,
-                    attribute_length,
+                Ok(AttributeType::LocalVariableTypeTable {
                     local_variable_type_table,
                 })
             }
-            "Deprecated" => Ok(Attribute::Deprecated {
-                attribute_name_index,
-                attribute_length,
-            }),
+            "Deprecated" => Ok(AttributeType::Deprecated),
             "RuntimeVisibleAnnotations" => {
                 let num_annotations = buf.get_u16();
                 let mut annotations: Vec<Annotation> = vec![];
                 for _ in 0..num_annotations {
                     annotations.push(Annotation::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::RuntimeVisibleAnnotations {
-                    attribute_name_index,
-                    attribute_length,
-                    annotations,
-                })
+                Ok(AttributeType::RuntimeVisibleAnnotations { annotations })
             }
             "RuntimeInvisibleAnnotations" => {
                 let num_annotations = buf.get_u16();
@@ -289,11 +123,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..num_annotations {
                     annotations.push(Annotation::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::RuntimeInvisibleAnnotations {
-                    attribute_name_index,
-                    attribute_length,
-                    annotations,
-                })
+                Ok(AttributeType::RuntimeInvisibleAnnotations { annotations })
             }
             "RuntimeVisibleParameterAnnotations" => {
                 let num_parameters = buf.get_u8();
@@ -301,9 +131,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..num_parameters {
                     parameter_annotations.push(ParameterAnnotation::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::RuntimeVisibleParameterAnnotations {
-                    attribute_name_index,
-                    attribute_length,
+                Ok(AttributeType::RuntimeVisibleParameterAnnotations {
                     parameter_annotations,
                 })
             }
@@ -313,9 +141,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..num_parameters {
                     parameter_annotations.push(ParameterAnnotation::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::RuntimeInvisibleParameterAnnotations {
-                    attribute_name_index,
-                    attribute_length,
+                Ok(AttributeType::RuntimeInvisibleParameterAnnotations {
                     parameter_annotations,
                 })
             }
@@ -325,9 +151,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..num_annotations {
                     type_annotations.push(TypeAnnotation::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::RuntimeVisibleTypeAnnotations {
-                    attribute_name_index,
-                    attribute_length,
+                Ok(AttributeType::RuntimeVisibleTypeAnnotations {
                     annotations: type_annotations,
                 })
             }
@@ -337,30 +161,20 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..num_annotations {
                     type_annotations.push(TypeAnnotation::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::RuntimeInvisibleTypeAnnotations {
-                    attribute_name_index,
-                    attribute_length,
+                Ok(AttributeType::RuntimeInvisibleTypeAnnotations {
                     annotations: type_annotations,
                 })
             }
-            "AnnotationDefault" => {
-                Ok(Attribute::AnnotationDefault {
-                    attribute_name_index,
-                    attribute_length,
-                    default_value: ElementValue::try_from(&mut *buf)?,
-                })
-            }
+            "AnnotationDefault" => Ok(AttributeType::AnnotationDefault {
+                default_value: ElementValue::try_from(&mut *buf)?,
+            }),
             "BootstrapMethods" => {
                 let num_bootstrap_methods = buf.get_u16();
                 let mut bootstrap_methods: Vec<BootstrapMethod> = vec![];
                 for _ in 0..num_bootstrap_methods {
                     bootstrap_methods.push(BootstrapMethod::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::BootstrapMethods {
-                    attribute_name_index,
-                    attribute_length,
-                    bootstrap_methods,
-                })
+                Ok(AttributeType::BootstrapMethods { bootstrap_methods })
             }
             "MethodParameters" => {
                 let parameters_count = buf.get_u8();
@@ -368,280 +182,143 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 for _ in 0..parameters_count {
                     parameters.push(MethodParameter::try_from(&mut *buf)?);
                 }
-                Ok(Attribute::MethodParameters {
-                    attribute_name_index,
-                    attribute_length,
-                    parameters,
-                })
+                Ok(AttributeType::MethodParameters { parameters })
             }
-            _ => Err(Error::InvalidAttributeName((*attribute_name).clone()))
-        };
+            _ => Err(Error::InvalidAttributeName((*attribute_name).clone())),
+        }?;
+        Ok(Attribute {
+            attribute_name_index,
+            attribute_length,
+            attr_type,
+        })
     }
 }
 
-impl<T> TryInto<&mut T, usize> for Attribute where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for Attribute
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
         let mut len: usize = 0;
-        match self {
-            Attribute::ConstantValue {
-                attribute_name_index,
-                attribute_length,
-                constant_value_index
+        buf.put_u16(self.attribute_name_index);
+        buf.put_u32(self.attribute_length);
+        len += 6;
+        match &self.attr_type {
+            AttributeType::ConstantValue {
+                constant_value_index,
             } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
                 buf.put_u16(*constant_value_index);
-                len += 8;
+                len += 2;
             }
-            Attribute::Code {
-                attribute_name_index,
-                attribute_length,
-                code
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::Code { code } => {
                 len += code.try_into(buf)?;
             }
-            Attribute::StackMapTable {
-                attribute_name_index,
-                attribute_length,
-                entries
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::StackMapTable { entries } => {
                 for stack_map in entries {
                     len += stack_map.try_into(buf)?;
                 }
             }
-            Attribute::Exceptions {
-                attribute_name_index,
-                attribute_length,
-                exception_index_table
+            AttributeType::Exceptions {
+                exception_index_table,
             } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
                 for exception_index in exception_index_table {
                     buf.put_u16(*exception_index);
                     len += 2;
                 }
             }
-            Attribute::InnerClasses {
-                attribute_name_index,
-                attribute_length,
-                classes
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::InnerClasses { classes } => {
                 for class in classes {
                     len += class.try_into(buf)?;
                 }
             }
-            Attribute::EnclosingMethod {
-                attribute_name_index,
-                attribute_length,
+            AttributeType::EnclosingMethod {
                 class_index,
-                method_index
+                method_index,
             } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
                 buf.put_u16(*class_index);
                 buf.put_u16(*method_index);
-                len += 10;
+                len += 4;
             }
-            Attribute::Synthetic {
-                attribute_name_index,
-                attribute_length
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
-            }
-            Attribute::Signature {
-                attribute_name_index,
-                attribute_length,
-                signature_index
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
+            AttributeType::Synthetic => {}
+            AttributeType::Signature { signature_index } => {
                 buf.put_u16(*signature_index);
-                len += 8;
+                len += 2;
             }
-            Attribute::SourceFile {
-                attribute_name_index,
-                attribute_length,
-                sourcefile_index
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
+            AttributeType::SourceFile { sourcefile_index } => {
                 buf.put_u16(*sourcefile_index);
-                len += 8;
+                len += 2;
             }
-            Attribute::SourceDebugExtension {
-                attribute_name_index,
-                attribute_length,
-                debug_extension
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::SourceDebugExtension { debug_extension } => {
                 for debug_info in debug_extension {
                     buf.put_u8(*debug_info);
                     len += 1;
                 }
             }
-            Attribute::LineNumberTable {
-                attribute_name_index,
-                attribute_length,
-                line_number_table
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::LineNumberTable { line_number_table } => {
                 for line_number in line_number_table {
                     len += line_number.try_into(buf)?;
                 }
             }
-            Attribute::LocalVariableTable {
-                attribute_name_index,
-                attribute_length,
-                local_variable_table
+            AttributeType::LocalVariableTable {
+                local_variable_table,
             } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
                 for local_variable in local_variable_table {
                     len += local_variable.try_into(buf)?;
                 }
             }
-            Attribute::LocalVariableTypeTable {
-                attribute_name_index,
-                attribute_length,
-                local_variable_type_table
+            AttributeType::LocalVariableTypeTable {
+                local_variable_type_table,
             } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
                 for local_variable_type in local_variable_type_table {
                     len += local_variable_type.try_into(buf)?;
                 }
             }
-            Attribute::Deprecated {
-                attribute_name_index,
-                attribute_length
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
-            }
-            Attribute::RuntimeVisibleAnnotations {
-                attribute_name_index,
-                attribute_length,
-                annotations
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::Deprecated => {}
+            AttributeType::RuntimeVisibleAnnotations { annotations } => {
                 for annotation in annotations {
                     len += annotation.try_into(buf)?;
                 }
             }
-            Attribute::RuntimeInvisibleAnnotations {
-                attribute_name_index,
-                attribute_length,
-                annotations
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::RuntimeInvisibleAnnotations { annotations } => {
                 for annotation in annotations {
                     len += annotation.try_into(buf)?;
                 }
             }
-            Attribute::RuntimeVisibleParameterAnnotations {
-                attribute_name_index,
-                attribute_length,
-                parameter_annotations
+            AttributeType::RuntimeVisibleParameterAnnotations {
+                parameter_annotations,
             } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
                 for parameter_annotation in parameter_annotations {
                     len += parameter_annotation.try_into(buf)?;
                 }
             }
-            Attribute::RuntimeInvisibleParameterAnnotations {
-                attribute_name_index,
-                attribute_length,
-                parameter_annotations
+            AttributeType::RuntimeInvisibleParameterAnnotations {
+                parameter_annotations,
             } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
                 for parameter_annotation in parameter_annotations {
                     len += parameter_annotation.try_into(buf)?;
                 }
             }
-            Attribute::RuntimeVisibleTypeAnnotations {
-                attribute_name_index,
-                attribute_length,
-                annotations
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::RuntimeVisibleTypeAnnotations { annotations } => {
                 for annotation in annotations {
                     len += annotation.try_into(buf)?;
                 }
             }
-            Attribute::RuntimeInvisibleTypeAnnotations {
-                attribute_name_index,
-                attribute_length,
-                annotations
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::RuntimeInvisibleTypeAnnotations { annotations } => {
                 for annotation in annotations {
                     len += annotation.try_into(buf)?;
                 }
             }
-            Attribute::AnnotationDefault {
-                attribute_name_index,
-                attribute_length,
-                default_value
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::AnnotationDefault { default_value } => {
                 len += default_value.try_into(buf)?;
             }
-            Attribute::BootstrapMethods {
-                attribute_name_index,
-                attribute_length,
-                bootstrap_methods
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::BootstrapMethods { bootstrap_methods } => {
                 for bootstrap_method in bootstrap_methods {
                     len += bootstrap_method.try_into(buf)?;
                 }
             }
-            Attribute::MethodParameters {
-                attribute_name_index,
-                attribute_length,
-                parameters
-            } => {
-                buf.put_u16(*attribute_name_index);
-                buf.put_u32(*attribute_length);
-                len += 6;
+            AttributeType::MethodParameters { parameters } => {
                 for parameter in parameters {
                     len += parameter.try_into(buf)?;
                 }
@@ -649,6 +326,76 @@ impl<T> TryInto<&mut T, usize> for Attribute where
         }
         Ok(len)
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum AttributeType {
+    ConstantValue {
+        constant_value_index: u16,
+    },
+    Code {
+        code: CodeAttribute,
+    },
+    StackMapTable {
+        entries: Vec<StackMap>,
+    },
+    Exceptions {
+        exception_index_table: Vec<u16>,
+    },
+    InnerClasses {
+        classes: Vec<InnerClass>,
+    },
+    EnclosingMethod {
+        class_index: u16,
+        method_index: u16,
+    },
+    Synthetic,
+    Signature {
+        signature_index: u16,
+    },
+    SourceFile {
+        sourcefile_index: u16,
+    },
+    SourceDebugExtension {
+        debug_extension: Vec<u8>,
+    },
+    LineNumberTable {
+        line_number_table: Vec<LineNumber>,
+    },
+    LocalVariableTable {
+        local_variable_table: Vec<LocalVariable>,
+    },
+    LocalVariableTypeTable {
+        local_variable_type_table: Vec<LocalVariableType>,
+    },
+    Deprecated,
+    RuntimeVisibleAnnotations {
+        annotations: Vec<Annotation>,
+    },
+    RuntimeInvisibleAnnotations {
+        annotations: Vec<Annotation>,
+    },
+    RuntimeVisibleParameterAnnotations {
+        parameter_annotations: Vec<ParameterAnnotation>,
+    },
+    RuntimeInvisibleParameterAnnotations {
+        parameter_annotations: Vec<ParameterAnnotation>,
+    },
+    RuntimeVisibleTypeAnnotations {
+        annotations: Vec<TypeAnnotation>,
+    },
+    RuntimeInvisibleTypeAnnotations {
+        annotations: Vec<TypeAnnotation>,
+    },
+    AnnotationDefault {
+        default_value: ElementValue,
+    },
+    BootstrapMethods {
+        bootstrap_methods: Vec<BootstrapMethod>,
+    },
+    MethodParameters {
+        parameters: Vec<MethodParameter>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -691,8 +438,10 @@ impl TryFromCp<&mut BytesMut> for CodeAttribute {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for CodeAttribute where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for CodeAttribute
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -744,8 +493,10 @@ impl TryFrom<&mut BytesMut> for Exception {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for Exception where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for Exception
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -763,17 +514,17 @@ impl<T> TryInto<&mut T, usize> for Exception where
 pub enum StackMapFrame {
     SameFrame,
     SameLocals1StackItemFrame {
-        stack: VerificationTypeInfo
+        stack: VerificationTypeInfo,
     },
     SameLocals1StackItemFrameExtended {
         offset_delta: u16,
         stack: VerificationTypeInfo,
     },
     ChopFrame {
-        offset_delta: u16
+        offset_delta: u16,
     },
     SameFrameExtended {
-        offset_delta: u16
+        offset_delta: u16,
     },
     AppendFrame {
         offset_delta: u16,
@@ -831,7 +582,10 @@ impl TryFrom<&mut BytesMut> for StackMap {
                     let local = VerificationTypeInfo::try_from(&mut *buf)?;
                     locals.push(local);
                 }
-                frame = StackMapFrame::AppendFrame { offset_delta, locals };
+                frame = StackMapFrame::AppendFrame {
+                    offset_delta,
+                    locals,
+                };
             }
             255 => {
                 let offset_delta = buf.get_u16();
@@ -857,15 +611,14 @@ impl TryFrom<&mut BytesMut> for StackMap {
                 return Err(Error::InvalidFrameType);
             }
         }
-        Ok(StackMap {
-            frame_type,
-            frame,
-        })
+        Ok(StackMap { frame_type, frame })
     }
 }
 
-impl<T> TryInto<&mut T, usize> for StackMap where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for StackMap
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -878,19 +631,26 @@ impl<T> TryInto<&mut T, usize> for StackMap where
                 if let StackMapFrame::SameLocals1StackItemFrame { stack } = &self.frame {
                     len += stack.try_into(buf)?;
                 } else {
-                    return Err(Error::MismatchFrameType(self.frame_type, self.frame.clone()));
+                    return Err(Error::MismatchFrameType(
+                        self.frame_type,
+                        self.frame.clone(),
+                    ));
                 }
             }
             247 => {
                 if let StackMapFrame::SameLocals1StackItemFrameExtended {
                     offset_delta,
-                    stack
-                } = &self.frame {
+                    stack,
+                } = &self.frame
+                {
                     buf.put_u16(*offset_delta);
                     len += 2;
                     len += stack.try_into(buf)?;
                 } else {
-                    return Err(Error::MismatchFrameType(self.frame_type, self.frame.clone()));
+                    return Err(Error::MismatchFrameType(
+                        self.frame_type,
+                        self.frame.clone(),
+                    ));
                 }
             }
             248..=250 => {
@@ -898,7 +658,10 @@ impl<T> TryInto<&mut T, usize> for StackMap where
                     buf.put_u16(offset_delta);
                     len += 2;
                 } else {
-                    return Err(Error::MismatchFrameType(self.frame_type, self.frame.clone()));
+                    return Err(Error::MismatchFrameType(
+                        self.frame_type,
+                        self.frame.clone(),
+                    ));
                 }
             }
             251 => {
@@ -906,28 +669,37 @@ impl<T> TryInto<&mut T, usize> for StackMap where
                     buf.put_u16(offset_delta);
                     len += 2;
                 } else {
-                    return Err(Error::MismatchFrameType(self.frame_type, self.frame.clone()));
+                    return Err(Error::MismatchFrameType(
+                        self.frame_type,
+                        self.frame.clone(),
+                    ));
                 }
             }
             252..=254 => {
                 if let StackMapFrame::AppendFrame {
-                    offset_delta, locals
-                } = &self.frame {
+                    offset_delta,
+                    locals,
+                } = &self.frame
+                {
                     buf.put_u16(*offset_delta);
                     len += 2;
                     for verification_type_info in locals {
                         len += verification_type_info.try_into(buf)?;
                     }
                 } else {
-                    return Err(Error::MismatchFrameType(self.frame_type, self.frame.clone()));
+                    return Err(Error::MismatchFrameType(
+                        self.frame_type,
+                        self.frame.clone(),
+                    ));
                 }
             }
             255 => {
                 if let StackMapFrame::FullFrame {
                     offset_delta,
                     locals,
-                    stack
-                } = &self.frame {
+                    stack,
+                } = &self.frame
+                {
                     buf.put_u16(*offset_delta);
                     for verification_type_info in locals {
                         len += verification_type_info.try_into(buf)?;
@@ -936,7 +708,10 @@ impl<T> TryInto<&mut T, usize> for StackMap where
                         len += verification_type_info.try_into(buf)?;
                     }
                 } else {
-                    return Err(Error::MismatchFrameType(self.frame_type, self.frame.clone()));
+                    return Err(Error::MismatchFrameType(
+                        self.frame_type,
+                        self.frame.clone(),
+                    ));
                 }
             }
             _ => {
@@ -956,12 +731,8 @@ pub enum VerificationTypeInfo {
     Double,
     Null,
     UninitializedThis,
-    Object {
-        cpool_index: u16
-    },
-    Uninitialized {
-        offset: u16
-    },
+    Object { cpool_index: u16 },
+    Uninitialized { offset: u16 },
 }
 
 impl TryFrom<&mut BytesMut> for VerificationTypeInfo {
@@ -970,27 +741,13 @@ impl TryFrom<&mut BytesMut> for VerificationTypeInfo {
     fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
         let tag = buf.get_u8();
         return match tag {
-            0 => {
-                Ok(VerificationTypeInfo::Top)
-            }
-            1 => {
-                Ok(VerificationTypeInfo::Integer)
-            }
-            2 => {
-                Ok(VerificationTypeInfo::Float)
-            }
-            3 => {
-                Ok(VerificationTypeInfo::Double)
-            }
-            4 => {
-                Ok(VerificationTypeInfo::Long)
-            }
-            5 => {
-                Ok(VerificationTypeInfo::Null)
-            }
-            6 => {
-                Ok(VerificationTypeInfo::UninitializedThis)
-            }
+            0 => Ok(VerificationTypeInfo::Top),
+            1 => Ok(VerificationTypeInfo::Integer),
+            2 => Ok(VerificationTypeInfo::Float),
+            3 => Ok(VerificationTypeInfo::Double),
+            4 => Ok(VerificationTypeInfo::Long),
+            5 => Ok(VerificationTypeInfo::Null),
+            6 => Ok(VerificationTypeInfo::UninitializedThis),
             7 => {
                 let cpool_index = buf.get_u16();
                 Ok(VerificationTypeInfo::Object { cpool_index })
@@ -999,15 +756,15 @@ impl TryFrom<&mut BytesMut> for VerificationTypeInfo {
                 let offset = buf.get_u16();
                 Ok(VerificationTypeInfo::Uninitialized { offset })
             }
-            _ => {
-                Err(Error::InvalidVerificationTypeInfo)
-            }
+            _ => Err(Error::InvalidVerificationTypeInfo),
         };
     }
 }
 
-impl<T> TryInto<&mut T, usize> for VerificationTypeInfo where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for VerificationTypeInfo
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1074,8 +831,10 @@ impl TryFrom<&mut BytesMut> for InnerClass {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for InnerClass where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for InnerClass
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1101,12 +860,17 @@ impl TryFrom<&mut BytesMut> for LineNumber {
     fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
         let start_pc = buf.get_u16();
         let line_number = buf.get_u16();
-        Ok(LineNumber { start_pc, line_number })
+        Ok(LineNumber {
+            start_pc,
+            line_number,
+        })
     }
 }
 
-impl<T> TryInto<&mut T, usize> for LineNumber where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for LineNumber
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1146,8 +910,10 @@ impl TryFrom<&mut BytesMut> for LocalVariable {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for LocalVariable where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for LocalVariable
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1190,8 +956,10 @@ impl TryFrom<&mut BytesMut> for LocalVariableType {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for LocalVariableType where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for LocalVariableType
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1236,12 +1004,17 @@ impl TryFrom<&mut BytesMut> for Annotation {
             let element_value = ElementValue::try_from(&mut *buf)?;
             element_value_pairs.push((element_name_index, element_value));
         }
-        Ok(Annotation { type_index, element_value_pairs })
+        Ok(Annotation {
+            type_index,
+            element_value_pairs,
+        })
     }
 }
 
-impl<T> TryInto<&mut T, usize> for Annotation where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for Annotation
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1346,8 +1119,10 @@ impl TryFrom<&mut BytesMut> for ElementValue {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for ElementValue where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for ElementValue
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1408,7 +1183,7 @@ impl<T> TryInto<&mut T, usize> for ElementValue where
 
 #[derive(Debug, Clone)]
 pub struct ParameterAnnotation {
-    annotations: Vec<Annotation>
+    annotations: Vec<Annotation>,
 }
 
 impl TryFrom<&mut BytesMut> for ParameterAnnotation {
@@ -1424,8 +1199,10 @@ impl TryFrom<&mut BytesMut> for ParameterAnnotation {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for ParameterAnnotation where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for ParameterAnnotation
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1437,7 +1214,6 @@ impl<T> TryInto<&mut T, usize> for ParameterAnnotation where
         Ok(len)
     }
 }
-
 
 ///```jvm
 /// type_annotation {
@@ -1524,7 +1300,10 @@ impl TryFrom<&mut BytesMut> for TypeAnnotation {
             0x11 | 0x12 => {
                 let type_parameter_index = buf.get_u8();
                 let bound_index = buf.get_u8();
-                target_info = TargetInfo::TypeParameterBoundTarget { type_parameter_index, bound_index };
+                target_info = TargetInfo::TypeParameterBoundTarget {
+                    type_parameter_index,
+                    bound_index,
+                };
             }
             0x13 | 0x14 | 0x15 => target_info = TargetInfo::EmptyTarget,
             0x16 => {
@@ -1541,7 +1320,7 @@ impl TryFrom<&mut BytesMut> for TypeAnnotation {
                 for _ in 0..table_length {
                     let local_var = match LocalVar::try_from(&mut *buf) {
                         Ok(local_var) => local_var,
-                        Err(e) => return Err(e)
+                        Err(e) => return Err(e),
                     };
                     local_vars.push(local_var);
                 }
@@ -1558,7 +1337,10 @@ impl TryFrom<&mut BytesMut> for TypeAnnotation {
             0x47 | 0x48 | 0x49 | 0x4A | 0x4B => {
                 let offset = buf.get_u16();
                 let type_argument_index = buf.get_u8();
-                target_info = TargetInfo::TypeArgumentTarget { offset, type_argument_index };
+                target_info = TargetInfo::TypeArgumentTarget {
+                    offset,
+                    type_argument_index,
+                };
             }
             _ => {
                 return Err(Error::InvalidTargetType(target_type));
@@ -1572,7 +1354,7 @@ impl TryFrom<&mut BytesMut> for TypeAnnotation {
             let element_name_index = buf.get_u16();
             let value = match ElementValue::try_from(&mut *buf) {
                 Ok(value) => value,
-                Err(e) => return Err(e)
+                Err(e) => return Err(e),
             };
             element_value_pairs.push((element_name_index, value))
         }
@@ -1586,8 +1368,10 @@ impl TryFrom<&mut BytesMut> for TypeAnnotation {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for TypeAnnotation where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for TypeAnnotation
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1612,7 +1396,11 @@ impl<T> TryInto<&mut T, usize> for TypeAnnotation where
                 }
             }
             0x11 | 0x12 => {
-                if let TargetInfo::TypeParameterBoundTarget { type_parameter_index, bound_index } = self.target_info {
+                if let TargetInfo::TypeParameterBoundTarget {
+                    type_parameter_index,
+                    bound_index,
+                } = self.target_info
+                {
                     buf.put_u8(type_parameter_index);
                     buf.put_u8(bound_index);
                     len += 2;
@@ -1625,7 +1413,8 @@ impl<T> TryInto<&mut T, usize> for TypeAnnotation where
                 log::info!("Nothing parsed from TargetInfo::EmptyTarget");
             }
             0x16 => {
-                if let TargetInfo::FormalParameterTarget(formal_parameter_index) = self.target_info {
+                if let TargetInfo::FormalParameterTarget(formal_parameter_index) = self.target_info
+                {
                     buf.put_u8(formal_parameter_index);
                     len += 1;
                 } else {
@@ -1668,7 +1457,11 @@ impl<T> TryInto<&mut T, usize> for TypeAnnotation where
                 }
             }
             0x47 | 0x48 | 0x49 | 0x4A | 0x4B => {
-                if let TargetInfo::TypeArgumentTarget { offset, type_argument_index } = self.target_info {
+                if let TargetInfo::TypeArgumentTarget {
+                    offset,
+                    type_argument_index,
+                } = self.target_info
+                {
                     buf.put_u16(offset);
                     buf.put_u8(type_argument_index);
                     len += 3;
@@ -1707,7 +1500,7 @@ impl<T> TryInto<&mut T, usize> for TypeAnnotation where
 pub struct TypePath {
     /// 0. type_path_kind
     /// 1. type_argument_index
-    pub path: Vec<(u8, u8)>
+    pub path: Vec<(u8, u8)>,
 }
 
 impl TryFrom<&mut BytesMut> for TypePath {
@@ -1725,8 +1518,10 @@ impl TryFrom<&mut BytesMut> for TypePath {
     }
 }
 
-impl<T> TryInto<&mut T, usize> for TypePath where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for TypePath
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1757,12 +1552,18 @@ impl TryFrom<&mut BytesMut> for LocalVar {
         let start_pc = buf.get_u16();
         let length = buf.get_u16();
         let index = buf.get_u16();
-        Ok(LocalVar { start_pc, length, index })
+        Ok(LocalVar {
+            start_pc,
+            length,
+            index,
+        })
     }
 }
 
-impl<T> TryInto<&mut T, usize> for LocalVar where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for LocalVar
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1791,12 +1592,17 @@ impl TryFrom<&mut BytesMut> for BootstrapMethod {
         for _ in 0..num_bootstrap_arguments {
             bootstrap_arguments.push(buf.get_u16());
         }
-        Ok(BootstrapMethod { bootstrap_method_ref, bootstrap_arguments })
+        Ok(BootstrapMethod {
+            bootstrap_method_ref,
+            bootstrap_arguments,
+        })
     }
 }
 
-impl<T> TryInto<&mut T, usize> for BootstrapMethod where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for BootstrapMethod
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -1814,7 +1620,6 @@ impl<T> TryInto<&mut T, usize> for BootstrapMethod where
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct MethodParameter {
     pub name_index: u16,
@@ -1827,12 +1632,17 @@ impl TryFrom<&mut BytesMut> for MethodParameter {
     fn try_from(buf: &mut BytesMut) -> Result<Self, Self::Error> {
         let name_index = buf.get_u16();
         let access_flags = buf.get_u16();
-        Ok(MethodParameter { name_index, access_flags })
+        Ok(MethodParameter {
+            name_index,
+            access_flags,
+        })
     }
 }
 
-impl<T> TryInto<&mut T, usize> for MethodParameter where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for MethodParameter
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {

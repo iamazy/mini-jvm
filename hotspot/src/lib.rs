@@ -1,11 +1,11 @@
 #[macro_use]
 pub mod macros;
-pub mod types;
-pub mod stack;
-pub mod oops;
-pub mod classpath;
-pub mod runtime;
 pub mod basic_type;
+pub mod classpath;
+pub mod oops;
+pub mod runtime;
+pub mod stack;
+pub mod types;
 
 #[cfg(test)]
 mod tests {

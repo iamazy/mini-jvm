@@ -1,6 +1,6 @@
+use std::fmt::Formatter;
 #[allow(dead_code)]
 use std::fmt::{self, Display};
-use std::fmt::Formatter;
 
 #[derive(Debug, Clone)]
 pub enum FieldType<'a> {
@@ -38,15 +38,13 @@ impl<'a> Display for FieldType<'a> {
 
 #[derive(Debug, Clone)]
 pub enum ParameterDescriptor<'a> {
-    FieldType(FieldType<'a>)
+    FieldType(FieldType<'a>),
 }
 
 impl<'a> Display for ParameterDescriptor<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ParameterDescriptor::FieldType(field_type) => {
-                field_type.fmt(f)
-            }
+            ParameterDescriptor::FieldType(field_type) => field_type.fmt(f),
         }
     }
 }
@@ -60,26 +58,21 @@ pub enum ReturnDescriptor<'a> {
 impl<'a> Display for ReturnDescriptor<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ReturnDescriptor::FieldType(field_type) => {
-                field_type.fmt(f)
-            }
-            ReturnDescriptor::Void(void) => {
-                void.fmt(f)
-            }
+            ReturnDescriptor::FieldType(field_type) => field_type.fmt(f),
+            ReturnDescriptor::Void(void) => void.fmt(f),
         }
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub enum VoidDescriptor {
-    Void
+    Void,
 }
 
 impl Display for VoidDescriptor {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            VoidDescriptor::Void => write!(f, "V")
+            VoidDescriptor::Void => write!(f, "V"),
         }
     }
 }
@@ -91,7 +84,9 @@ mod test {
     #[test]
     fn test_fmt_field_type() {
         let class_name = &String::from("java/lang/String");
-        let field_type = FieldType::Array(Box::new(FieldType::Array(Box::new(FieldType::Reference(class_name)))));
+        let field_type = FieldType::Array(Box::new(FieldType::Array(Box::new(
+            FieldType::Reference(class_name),
+        ))));
         println!("{}", field_type);
     }
 }

@@ -1,5 +1,5 @@
 pub struct Stack<T> {
-    head: Link<T>
+    head: Link<T>,
 }
 
 type Link<T> = Option<Box<Node<T>>>;
@@ -30,15 +30,11 @@ impl<T> Stack<T> {
     }
 
     pub fn peek(&self) -> Option<&T> {
-        self.head.as_ref().map(|node| {
-            &node.elem
-        })
+        self.head.as_ref().map(|node| &node.elem)
     }
 
     pub fn peek_mut(&mut self) -> Option<&mut T> {
-        self.head.as_mut().map(|node| {
-            &mut node.elem
-        })
+        self.head.as_mut().map(|node| &mut node.elem)
     }
 
     pub fn into_iter(self) -> IntoIter<T> {
@@ -46,11 +42,15 @@ impl<T> Stack<T> {
     }
 
     pub fn iter(&self) -> Iter<'_, T> {
-        Iter { next: self.head.as_ref().map(|node| &**node) }
+        Iter {
+            next: self.head.as_ref().map(|node| &**node),
+        }
     }
 
     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
-        IterMut { next: self.head.as_mut().map(|node| &mut **node) }
+        IterMut {
+            next: self.head.as_mut().map(|node| &mut **node),
+        }
     }
 }
 
@@ -74,7 +74,7 @@ impl<T> Iterator for IntoIter<T> {
 }
 
 pub struct Iter<'a, T> {
-    next: Option<&'a Node<T>>
+    next: Option<&'a Node<T>>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -89,7 +89,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
 }
 
 pub struct IterMut<'a, T> {
-    next: Option<&'a mut Node<T>>
+    next: Option<&'a mut Node<T>>,
 }
 
 impl<'a, T> Iterator for IterMut<'a, T> {

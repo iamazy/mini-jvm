@@ -1,8 +1,8 @@
-use crate::{read_string, write_string, TryInto};
-use bytes::{BytesMut, BufMut, Buf};
 use crate::error::Error;
-use std::fmt::{self, Formatter};
+use crate::{read_string, write_string, TryInto};
+use bytes::{Buf, BufMut, BytesMut};
 use std::convert::TryFrom;
+use std::fmt::{self, Formatter};
 
 /// Tag values for the constant pool entries
 #[derive(Debug, Clone)]
@@ -23,7 +23,7 @@ pub enum Tag {
     Dynamic,
     InvokeDynamic,
     Module,
-    Package
+    Package,
 }
 
 impl Into<u8> for Tag {
@@ -70,7 +70,7 @@ impl From<u8> for Tag {
             18 => Tag::InvokeDynamic,
             19 => Tag::Module,
             20 => Tag::Package,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -102,7 +102,6 @@ pub fn get_class_name(constant_pool: &ConstantPool, index: usize) -> Option<&Str
 #[derive(Debug, Clone)]
 pub struct ConstantPool(pub Vec<Constant>);
 
-
 #[derive(Debug, Clone)]
 pub enum Constant {
     Class {
@@ -127,7 +126,7 @@ pub enum Constant {
         name_and_type_index: u16,
     },
     String {
-        string_index: u16
+        string_index: u16,
     },
     Integer(i32),
     Float(f32),
@@ -143,7 +142,7 @@ pub enum Constant {
         reference_index: u16,
     },
     MethodType {
-        descriptor_index: u16
+        descriptor_index: u16,
     },
     InvokeDynamic {
         bootstrap_method_attr_index: u16,
@@ -165,17 +164,26 @@ impl TryFrom<&mut BytesMut> for Constant {
             Tag::FieldRef => {
                 let class_index = buf.get_u16();
                 let name_and_type_index = buf.get_u16();
-                Ok(Constant::FieldRef { class_index, name_and_type_index })
+                Ok(Constant::FieldRef {
+                    class_index,
+                    name_and_type_index,
+                })
             }
             Tag::MethodRef => {
                 let class_index = buf.get_u16();
                 let name_and_type_index = buf.get_u16();
-                Ok(Constant::MethodRef { class_index, name_and_type_index })
+                Ok(Constant::MethodRef {
+                    class_index,
+                    name_and_type_index,
+                })
             }
             Tag::InterfaceMethodRef => {
                 let class_index = buf.get_u16();
                 let name_and_type_index = buf.get_u16();
-                Ok(Constant::InterfaceMethodRef { class_index, name_and_type_index })
+                Ok(Constant::InterfaceMethodRef {
+                    class_index,
+                    name_and_type_index,
+                })
             }
             Tag::String => {
                 let string_index = buf.get_u16();
@@ -200,15 +208,19 @@ impl TryFrom<&mut BytesMut> for Constant {
             Tag::NameAndType => {
                 let name_index = buf.get_u16();
                 let descriptor_index = buf.get_u16();
-                Ok(Constant::NameAndType { name_index, descriptor_index })
+                Ok(Constant::NameAndType {
+                    name_index,
+                    descriptor_index,
+                })
             }
-            Tag::Utf8 => {
-                Ok(Constant::Utf8(read_string(buf)?))
-            }
+            Tag::Utf8 => Ok(Constant::Utf8(read_string(buf)?)),
             Tag::MethodHandle => {
                 let reference_kind = buf.get_u8();
                 let reference_index = buf.get_u16();
-                Ok(Constant::MethodHandle { reference_kind, reference_index })
+                Ok(Constant::MethodHandle {
+                    reference_kind,
+                    reference_index,
+                })
             }
             Tag::MethodType => {
                 let descriptor_index = buf.get_u16();
@@ -217,15 +229,20 @@ impl TryFrom<&mut BytesMut> for Constant {
             Tag::InvokeDynamic => {
                 let bootstrap_method_attr_index = buf.get_u16();
                 let name_and_type_index = buf.get_u16();
-                Ok(Constant::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index })
+                Ok(Constant::InvokeDynamic {
+                    bootstrap_method_attr_index,
+                    name_and_type_index,
+                })
             }
-            _ => Err(Error::InvalidConstantTag(tag.into()))
+            _ => Err(Error::InvalidConstantTag(tag.into())),
         }
     }
 }
 
-impl<T> TryInto<&mut T, usize> for Constant where
-    T: BufMut {
+impl<T> TryInto<&mut T, usize> for Constant
+where
+    T: BufMut,
+{
     type Error = Error;
 
     fn try_into(&self, buf: &mut T) -> Result<usize, Self::Error> {
@@ -236,19 +253,28 @@ impl<T> TryInto<&mut T, usize> for Constant where
                 buf.put_u16(*name_index);
                 len += 2;
             }
-            Constant::FieldRef { class_index, name_and_type_index } => {
+            Constant::FieldRef {
+                class_index,
+                name_and_type_index,
+            } => {
                 buf.put_u8(Tag::FieldRef.into());
                 buf.put_u16(*class_index);
                 buf.put_u16(*name_and_type_index);
                 len += 4;
             }
-            Constant::MethodRef { class_index, name_and_type_index } => {
+            Constant::MethodRef {
+                class_index,
+                name_and_type_index,
+            } => {
                 buf.put_u8(Tag::MethodRef.into());
                 buf.put_u16(*class_index);
                 buf.put_u16(*name_and_type_index);
                 len += 4;
             }
-            Constant::InterfaceMethodRef { class_index, name_and_type_index } => {
+            Constant::InterfaceMethodRef {
+                class_index,
+                name_and_type_index,
+            } => {
                 buf.put_u8(Tag::InterfaceMethodRef.into());
                 buf.put_u16(*class_index);
                 buf.put_u16(*name_and_type_index);
@@ -279,7 +305,10 @@ impl<T> TryInto<&mut T, usize> for Constant where
                 buf.put_f64(*double);
                 len += 8;
             }
-            Constant::NameAndType { name_index, descriptor_index } => {
+            Constant::NameAndType {
+                name_index,
+                descriptor_index,
+            } => {
                 buf.put_u8(Tag::NameAndType.into());
                 buf.put_u16(*name_index);
                 buf.put_u16(*descriptor_index);
@@ -289,7 +318,10 @@ impl<T> TryInto<&mut T, usize> for Constant where
                 buf.put_u8(Tag::Utf8.into());
                 len += write_string(string.clone(), buf);
             }
-            Constant::MethodHandle { reference_kind, reference_index } => {
+            Constant::MethodHandle {
+                reference_kind,
+                reference_index,
+            } => {
                 buf.put_u8(Tag::MethodHandle.into());
                 buf.put_u8(*reference_kind);
                 buf.put_u16(*reference_index);
@@ -300,7 +332,10 @@ impl<T> TryInto<&mut T, usize> for Constant where
                 buf.put_u16(*descriptor_index);
                 len += 2;
             }
-            Constant::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index } => {
+            Constant::InvokeDynamic {
+                bootstrap_method_attr_index,
+                name_and_type_index,
+            } => {
                 buf.put_u8(Tag::InvokeDynamic.into());
                 buf.put_u16(*bootstrap_method_attr_index);
                 buf.put_u16(*name_and_type_index);
@@ -320,19 +355,28 @@ impl Constant {
                 buf.put_u16(*name_index);
                 len += 2;
             }
-            Constant::FieldRef { class_index, name_and_type_index } => {
+            Constant::FieldRef {
+                class_index,
+                name_and_type_index,
+            } => {
                 buf.put_u8(Tag::FieldRef.into());
                 buf.put_u16(*class_index);
                 buf.put_u16(*name_and_type_index);
                 len += 4;
             }
-            Constant::MethodRef { class_index, name_and_type_index } => {
+            Constant::MethodRef {
+                class_index,
+                name_and_type_index,
+            } => {
                 buf.put_u8(Tag::MethodRef.into());
                 buf.put_u16(*class_index);
                 buf.put_u16(*name_and_type_index);
                 len += 4;
             }
-            Constant::InterfaceMethodRef { class_index, name_and_type_index } => {
+            Constant::InterfaceMethodRef {
+                class_index,
+                name_and_type_index,
+            } => {
                 buf.put_u8(Tag::InterfaceMethodRef.into());
                 buf.put_u16(*class_index);
                 buf.put_u16(*name_and_type_index);
@@ -363,7 +407,10 @@ impl Constant {
                 buf.put_f64(*double);
                 len += 8;
             }
-            Constant::NameAndType { name_index, descriptor_index } => {
+            Constant::NameAndType {
+                name_index,
+                descriptor_index,
+            } => {
                 buf.put_u8(Tag::NameAndType.into());
                 buf.put_u16(*name_index);
                 buf.put_u16(*descriptor_index);
@@ -373,7 +420,10 @@ impl Constant {
                 buf.put_u8(Tag::Utf8.into());
                 len += write_string((*string).clone(), buf);
             }
-            Constant::MethodHandle { reference_kind, reference_index } => {
+            Constant::MethodHandle {
+                reference_kind,
+                reference_index,
+            } => {
                 buf.put_u8(Tag::MethodHandle.into());
                 buf.put_u8(*reference_kind);
                 buf.put_u16(*reference_index);
@@ -384,7 +434,10 @@ impl Constant {
                 buf.put_u16(*descriptor_index);
                 len += 2;
             }
-            Constant::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index } => {
+            Constant::InvokeDynamic {
+                bootstrap_method_attr_index,
+                name_and_type_index,
+            } => {
                 buf.put_u8(Tag::InvokeDynamic.into());
                 buf.put_u16(*bootstrap_method_attr_index);
                 buf.put_u16(*name_and_type_index);
@@ -411,7 +464,7 @@ impl fmt::Display for Constant {
             Constant::Utf8(..) => "Constant::Utf8".fmt(fmt),
             Constant::MethodHandle { .. } => "Constant::MethodHandle".fmt(fmt),
             Constant::MethodType { .. } => "Constant::MethodType".fmt(fmt),
-            Constant::InvokeDynamic { .. } => "Constant::InvokeDynamic".fmt(fmt)
+            Constant::InvokeDynamic { .. } => "Constant::InvokeDynamic".fmt(fmt),
         }
     }
 }

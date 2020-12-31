@@ -1,12 +1,10 @@
-use std::sync::Arc;
-use classfile::attribute::{Exception, LineNumber, CodeAttribute};
 use crate::basic_type::BasicType;
-use std::fmt::{self, Display, Formatter};
 use crate::oops::class::ClassPtr;
 use crate::oops::symbol::Symbol;
-use classfile::method::MethodInfo;
 use classfile::access_flags::AccessFlags;
 use classfile::constant::ConstantPool;
+use classfile::method::MethodInfo;
+use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, Clone)]
 pub struct Method<'a> {
@@ -15,11 +13,10 @@ pub struct Method<'a> {
     pub class: ClassPtr,
     // offset in class method list
     pub offset: usize,
-    pub method_info: &'a MethodInfo<'a>
+    pub method_info: &'a MethodInfo,
 }
 
 impl<'a> Method<'a> {
-
     pub fn class_name(&self) -> &'a String {
         unimplemented!()
     }
@@ -119,7 +116,7 @@ impl<'a> Method<'a> {
     }
 
     // name
-    pub fn name(&self) -> &'a Symbol{
+    pub fn name(&self) -> &'a Symbol {
         unimplemented!()
     }
 
@@ -161,11 +158,17 @@ impl<'a> Method<'a> {
     }
 
     pub fn max_locals(&self) -> usize {
-        self.code.max_locals as usize
+        return match self.method_info.get_code() {
+            Some(code) => code.max_locals as usize,
+            None => 0,
+        };
     }
 
     pub fn max_stack(&self) -> usize {
-        self.code.max_stack as usize
+        return match self.method_info.get_code() {
+            Some(code) => code.max_stack as usize,
+            None => 0,
+        };
     }
 }
 

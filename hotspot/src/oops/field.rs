@@ -1,8 +1,8 @@
+use crate::oops::class::ClassPtr;
 use crate::oops::symbol::Symbol;
 use classfile::access_flags::AccessFlags;
-use classfile::field::FieldInfo;
-use crate::oops::class::ClassPtr;
 use classfile::descriptor::FieldType;
+use classfile::field::FieldInfo;
 
 #[derive(Debug, Clone)]
 pub struct Field<'a> {
@@ -14,17 +14,16 @@ pub struct Field<'a> {
 }
 
 impl<'a> Field<'a> {
-
-    pub fn class_name(&self) -> &'a String {
+    pub fn class_name(&self) -> &String {
         unimplemented!()
     }
 
     // Access flags
-    pub fn access_flags(&self) -> &'a AccessFlags {
+    pub fn access_flags(&self) -> &AccessFlags {
         &self.access_flags
     }
 
-    pub fn name(&self) -> &'a Symbol{
+    pub fn name(&self) -> &Symbol {
         unimplemented!()
     }
 
@@ -32,12 +31,11 @@ impl<'a> Field<'a> {
         self.field_info.name_index
     }
 
-    pub fn signature(&self) -> &'a Symbol {
+    pub fn signature(&self) -> &Symbol {
         unimplemented!()
     }
 
     pub fn signature_index(&self) -> u16 {
         unimplemented!()
     }
-
 }

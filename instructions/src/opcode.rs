@@ -439,7 +439,7 @@ impl From<u8> for OpCode {
             0xca => OpCode::breakpoint,
             0xfe => OpCode::impdep1,
             0xff => OpCode::impdep2,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -651,7 +651,7 @@ impl Into<&'static str> for OpCode {
             OpCode::jsr_w => "jsr_w",
             OpCode::breakpoint => "breakpoint",
             OpCode::impdep1 => "impdep1",
-            OpCode::impdep2 => "impdep2"
+            OpCode::impdep2 => "impdep2",
         }
     }
 }
