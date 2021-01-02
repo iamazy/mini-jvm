@@ -1,7 +1,6 @@
 use crate::types::MethodIdRef;
 use classfile::{BytesRef, ConstantPoolRef};
 use std::sync::atomic::AtomicUsize;
-use std::sync::Arc;
 
 pub struct Frame {
     pub id: usize,
