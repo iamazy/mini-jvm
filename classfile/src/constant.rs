@@ -48,6 +48,34 @@ pub fn get_name_and_type(constant_pool: &ConstantPoolRef, index: usize) -> (&Byt
     }
 }
 
+pub fn get_method_ref(constant_pool: &ConstantPoolRef, index: usize) -> (u8, u16, u16) {
+    match constant_pool.get(index) {
+        Some(Constant::MethodRef {
+            class_index,
+            name_and_type_index,
+        }) => (Tag::MethodRef.into(), *class_index, *name_and_type_index),
+        Some(Constant::InterfaceMethodRef {
+            class_index,
+            name_and_type_index,
+        }) => (
+            Tag::InterfaceMethodRef.into(),
+            *class_index,
+            *name_and_type_index,
+        ),
+        _ => unreachable!(),
+    }
+}
+
+pub fn get_field_ref(constant_pool: &ConstantPoolRef, index: usize) -> (u16, u16) {
+    match constant_pool.get(index) {
+        Some(Constant::FieldRef {
+            class_index,
+            name_and_type_index,
+        }) => (*class_index, *name_and_type_index),
+        _ => unreachable!(),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Constant {
     Class {
