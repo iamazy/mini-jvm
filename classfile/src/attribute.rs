@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use crate::constant::{get_utf8, ConstantPool};
+use crate::constant::get_utf8;
 use crate::error::Error;
-use crate::{TryFromCp, TryInto};
+use crate::{ConstantPoolRef, TryFromCp, TryInto};
 use bytes::{Buf, BufMut, BytesMut};
 use std::convert::TryFrom;
 
@@ -16,21 +16,24 @@ pub struct Attribute {
 impl TryFromCp<&mut BytesMut> for Attribute {
     type Error = Error;
 
-    fn try_from_cp(buf: &mut BytesMut, constant_pool: &ConstantPool) -> Result<Self, Self::Error> {
+    fn try_from_cp(
+        buf: &mut BytesMut,
+        constant_pool: &ConstantPoolRef,
+    ) -> Result<Self, Self::Error> {
         let attribute_name_index = buf.get_u16();
         let attribute_length = buf.get_u32();
-        let attribute_name = get_utf8(constant_pool, attribute_name_index as usize).unwrap();
-        let attr_type = match attribute_name.as_str() {
-            "ConstantValue" => {
+        let attribute_name = &**get_utf8(constant_pool, attribute_name_index as usize);
+        let attr_type = match attribute_name.as_slice() {
+            b"ConstantValue" => {
                 let constant_value_index = buf.get_u16();
                 Ok(AttributeType::ConstantValue {
                     constant_value_index,
                 })
             }
-            "Code" => Ok(AttributeType::Code {
+            b"Code" => Ok(AttributeType::Code {
                 code: CodeAttribute::try_from_cp(buf, constant_pool)?,
             }),
-            "StackMapTable" => {
+            b"StackMapTable" => {
                 let number_of_entries = buf.get_u16();
                 let mut entries: Vec<StackMap> = vec![];
                 for _ in 0..number_of_entries {
@@ -38,7 +41,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 }
                 Ok(AttributeType::StackMapTable { entries })
             }
-            "Exceptions" => {
+            b"Exceptions" => {
                 let number_of_exceptions = buf.get_u16();
                 let mut exception_index_table: Vec<u16> = vec![];
                 for _ in 0..number_of_exceptions {
@@ -48,7 +51,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                     exception_index_table,
                 })
             }
-            "InnerClass" => {
+            b"InnerClass" => {
                 let number_of_classes = buf.get_u16();
                 let mut classes: Vec<InnerClass> = vec![];
                 for _ in 0..number_of_classes {
@@ -56,7 +59,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 }
                 Ok(AttributeType::InnerClasses { classes })
             }
-            "EnclosingMethod" => {
+            b"EnclosingMethod" => {
                 let class_index = buf.get_u16();
                 let method_index = buf.get_u16();
                 Ok(AttributeType::EnclosingMethod {
@@ -64,23 +67,23 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                     method_index,
                 })
             }
-            "Synthetic" => Ok(AttributeType::Synthetic),
-            "Signature" => {
+            b"Synthetic" => Ok(AttributeType::Synthetic),
+            b"Signature" => {
                 let signature_index = buf.get_u16();
                 Ok(AttributeType::Signature { signature_index })
             }
-            "SourceFile" => {
+            b"SourceFile" => {
                 let sourcefile_index = buf.get_u16();
                 Ok(AttributeType::SourceFile { sourcefile_index })
             }
-            "SourceDebugExtension" => {
+            b"SourceDebugExtension" => {
                 let mut debug_extension: Vec<u8> = vec![];
                 for _ in 0..attribute_length {
                     debug_extension.push(buf.get_u8());
                 }
                 Ok(AttributeType::SourceDebugExtension { debug_extension })
             }
-            "LineNumberTable" => {
+            b"LineNumberTable" => {
                 let line_number_table_length = buf.get_u16();
                 let mut line_number_table: Vec<LineNumber> = vec![];
                 for _ in 0..line_number_table_length {
@@ -88,7 +91,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 }
                 Ok(AttributeType::LineNumberTable { line_number_table })
             }
-            "LocalVariableTable" => {
+            b"LocalVariableTable" => {
                 let local_variable_table_length = buf.get_u16();
                 let mut local_variable_table: Vec<LocalVariable> = vec![];
                 for _ in 0..local_variable_table_length {
@@ -98,7 +101,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                     local_variable_table,
                 })
             }
-            "LocalVariableTypeTable" => {
+            b"LocalVariableTypeTable" => {
                 let local_variable_type_table_length = buf.get_u16();
                 let mut local_variable_type_table: Vec<LocalVariableType> = vec![];
                 for _ in 0..local_variable_type_table_length {
@@ -108,8 +111,8 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                     local_variable_type_table,
                 })
             }
-            "Deprecated" => Ok(AttributeType::Deprecated),
-            "RuntimeVisibleAnnotations" => {
+            b"Deprecated" => Ok(AttributeType::Deprecated),
+            b"RuntimeVisibleAnnotations" => {
                 let num_annotations = buf.get_u16();
                 let mut annotations: Vec<Annotation> = vec![];
                 for _ in 0..num_annotations {
@@ -117,7 +120,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 }
                 Ok(AttributeType::RuntimeVisibleAnnotations { annotations })
             }
-            "RuntimeInvisibleAnnotations" => {
+            b"RuntimeInvisibleAnnotations" => {
                 let num_annotations = buf.get_u16();
                 let mut annotations: Vec<Annotation> = vec![];
                 for _ in 0..num_annotations {
@@ -125,7 +128,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 }
                 Ok(AttributeType::RuntimeInvisibleAnnotations { annotations })
             }
-            "RuntimeVisibleParameterAnnotations" => {
+            b"RuntimeVisibleParameterAnnotations" => {
                 let num_parameters = buf.get_u8();
                 let mut parameter_annotations: Vec<ParameterAnnotation> = vec![];
                 for _ in 0..num_parameters {
@@ -135,7 +138,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                     parameter_annotations,
                 })
             }
-            "RuntimeInvisibleParameterAnnotations" => {
+            b"RuntimeInvisibleParameterAnnotations" => {
                 let num_parameters = buf.get_u8();
                 let mut parameter_annotations: Vec<ParameterAnnotation> = vec![];
                 for _ in 0..num_parameters {
@@ -145,7 +148,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                     parameter_annotations,
                 })
             }
-            "RuntimeVisibleTypeAnnotations" => {
+            b"RuntimeVisibleTypeAnnotations" => {
                 let num_annotations = buf.get_u8();
                 let mut type_annotations: Vec<TypeAnnotation> = vec![];
                 for _ in 0..num_annotations {
@@ -155,7 +158,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                     annotations: type_annotations,
                 })
             }
-            "RuntimeInvisibleTypeAnnotations" => {
+            b"RuntimeInvisibleTypeAnnotations" => {
                 let num_annotations = buf.get_u8();
                 let mut type_annotations: Vec<TypeAnnotation> = vec![];
                 for _ in 0..num_annotations {
@@ -165,10 +168,10 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                     annotations: type_annotations,
                 })
             }
-            "AnnotationDefault" => Ok(AttributeType::AnnotationDefault {
+            b"AnnotationDefault" => Ok(AttributeType::AnnotationDefault {
                 default_value: ElementValue::try_from(&mut *buf)?,
             }),
-            "BootstrapMethods" => {
+            b"BootstrapMethods" => {
                 let num_bootstrap_methods = buf.get_u16();
                 let mut bootstrap_methods: Vec<BootstrapMethod> = vec![];
                 for _ in 0..num_bootstrap_methods {
@@ -176,7 +179,7 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 }
                 Ok(AttributeType::BootstrapMethods { bootstrap_methods })
             }
-            "MethodParameters" => {
+            b"MethodParameters" => {
                 let parameters_count = buf.get_u8();
                 let mut parameters: Vec<MethodParameter> = vec![];
                 for _ in 0..parameters_count {
@@ -184,7 +187,9 @@ impl TryFromCp<&mut BytesMut> for Attribute {
                 }
                 Ok(AttributeType::MethodParameters { parameters })
             }
-            _ => Err(Error::InvalidAttributeName((*attribute_name).clone())),
+            _ => Err(Error::InvalidAttributeName(
+                String::from_utf8(attribute_name.clone()).unwrap(),
+            )),
         }?;
         Ok(Attribute {
             attribute_name_index,
@@ -410,7 +415,10 @@ pub struct CodeAttribute {
 impl TryFromCp<&mut BytesMut> for CodeAttribute {
     type Error = Error;
 
-    fn try_from_cp(buf: &mut BytesMut, constant_pool: &ConstantPool) -> Result<Self, Self::Error> {
+    fn try_from_cp(
+        buf: &mut BytesMut,
+        constant_pool: &ConstantPoolRef,
+    ) -> Result<Self, Self::Error> {
         let max_stack = buf.get_u16();
         let max_locals = buf.get_u16();
         let code_length = buf.get_u32();

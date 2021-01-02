@@ -1,79 +1,9 @@
 use crate::error::Error;
-use crate::{read_string, write_string, TryInto};
+use crate::{read_utf8, write_utf8, BytesRef, ConstantPoolRef, TryInto};
 use bytes::{Buf, BufMut, BytesMut};
 use std::convert::TryFrom;
 use std::fmt::{self, Formatter};
-
-/// Tag values for the constant pool entries
-#[derive(Debug, Clone)]
-pub enum Tag {
-    Class,
-    FieldRef,
-    MethodRef,
-    InterfaceMethodRef,
-    String,
-    Integer,
-    Float,
-    Long,
-    Double,
-    NameAndType,
-    Utf8,
-    MethodHandle,
-    MethodType,
-    Dynamic,
-    InvokeDynamic,
-    Module,
-    Package,
-}
-
-impl Into<u8> for Tag {
-    fn into(self) -> u8 {
-        match self {
-            Tag::Class => 7u8,
-            Tag::FieldRef => 9u8,
-            Tag::MethodRef => 10u8,
-            Tag::InterfaceMethodRef => 11u8,
-            Tag::String => 8u8,
-            Tag::Integer => 3u8,
-            Tag::Float => 4u8,
-            Tag::Long => 5u8,
-            Tag::Double => 6u8,
-            Tag::NameAndType => 12u8,
-            Tag::Utf8 => 1u8,
-            Tag::MethodHandle => 15u8,
-            Tag::MethodType => 16u8,
-            Tag::Dynamic => 17u8,
-            Tag::InvokeDynamic => 18u8,
-            Tag::Module => 19u8,
-            Tag::Package => 20u8,
-        }
-    }
-}
-
-impl From<u8> for Tag {
-    fn from(tag: u8) -> Self {
-        match tag {
-            7 => Tag::Class,
-            9 => Tag::FieldRef,
-            10 => Tag::MethodRef,
-            11 => Tag::InterfaceMethodRef,
-            8 => Tag::String,
-            3 => Tag::Integer,
-            4 => Tag::Float,
-            5 => Tag::Long,
-            6 => Tag::Double,
-            12 => Tag::NameAndType,
-            1 => Tag::Utf8,
-            15 => Tag::MethodHandle,
-            16 => Tag::MethodType,
-            17 => Tag::Dynamic,
-            18 => Tag::InvokeDynamic,
-            19 => Tag::Module,
-            20 => Tag::Package,
-            _ => unreachable!(),
-        }
-    }
-}
+use std::sync::Arc;
 
 ///```jvm
 /// cp_info {
@@ -81,26 +11,42 @@ impl From<u8> for Tag {
 ///     u1 info[];
 /// }
 ///```
-pub fn get_utf8(constant_pool: &ConstantPool, index: usize) -> Option<&String> {
-    let constant = &constant_pool.0[index - 1];
-    return if let Constant::Utf8(string) = constant {
-        Some(&string)
-    } else {
-        None
-    };
+pub fn get_utf8(constant_pool: &ConstantPoolRef, index: usize) -> &BytesRef {
+    match constant_pool.get(index - 1) {
+        Some(Constant::Utf8(bytes)) => bytes,
+        _ => unreachable!(),
+    }
 }
 
-pub fn get_class_name(constant_pool: &ConstantPool, index: usize) -> Option<&String> {
-    let constant = &constant_pool.0[index - 1];
-    return if let Constant::Class { name_index } = constant {
-        get_utf8(constant_pool, *name_index as usize)
-    } else {
-        None
-    };
+pub fn get_string(constant_pool: &ConstantPoolRef, index: usize) -> String {
+    match constant_pool.get(index - 1) {
+        Some(Constant::String { string_index }) => {
+            let utf8 = get_utf8(constant_pool, *string_index as usize);
+            String::from_utf8((**utf8).clone()).unwrap()
+        }
+        _ => unreachable!(),
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct ConstantPool(pub Vec<Constant>);
+pub fn get_class_name(constant_pool: &ConstantPoolRef, index: usize) -> &BytesRef {
+    match constant_pool.get(index - 1) {
+        Some(Constant::Class { name_index }) => get_utf8(constant_pool, *name_index as usize),
+        _ => unreachable!(),
+    }
+}
+
+pub fn get_name_and_type(constant_pool: &ConstantPoolRef, index: usize) -> (&BytesRef, &BytesRef) {
+    match constant_pool.get(index) {
+        Some(Constant::NameAndType {
+            name_index,
+            descriptor_index,
+        }) => (
+            get_utf8(constant_pool, *name_index as usize),
+            get_utf8(constant_pool, *descriptor_index as usize),
+        ),
+        _ => unreachable!(),
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Constant {
@@ -136,7 +82,7 @@ pub enum Constant {
         name_index: u16,
         descriptor_index: u16,
     },
-    Utf8(String),
+    Utf8(BytesRef),
     MethodHandle {
         reference_kind: u8,
         reference_index: u16,
@@ -213,7 +159,7 @@ impl TryFrom<&mut BytesMut> for Constant {
                     descriptor_index,
                 })
             }
-            Tag::Utf8 => Ok(Constant::Utf8(read_string(buf)?)),
+            Tag::Utf8 => Ok(Constant::Utf8(Arc::new(read_utf8(buf)?))),
             Tag::MethodHandle => {
                 let reference_kind = buf.get_u8();
                 let reference_index = buf.get_u16();
@@ -314,9 +260,9 @@ where
                 buf.put_u16(*descriptor_index);
                 len += 4;
             }
-            Constant::Utf8(string) => {
+            Constant::Utf8(bytes) => {
                 buf.put_u8(Tag::Utf8.into());
-                len += write_string(string.clone(), buf);
+                len += write_utf8((**bytes).clone(), buf);
             }
             Constant::MethodHandle {
                 reference_kind,
@@ -416,9 +362,9 @@ impl Constant {
                 buf.put_u16(*descriptor_index);
                 len += 4;
             }
-            Constant::Utf8(string) => {
+            Constant::Utf8(bytes) => {
                 buf.put_u8(Tag::Utf8.into());
-                len += write_string((*string).clone(), buf);
+                len += write_utf8((**bytes).clone(), buf);
             }
             Constant::MethodHandle {
                 reference_kind,
@@ -465,6 +411,77 @@ impl fmt::Display for Constant {
             Constant::MethodHandle { .. } => "Constant::MethodHandle".fmt(fmt),
             Constant::MethodType { .. } => "Constant::MethodType".fmt(fmt),
             Constant::InvokeDynamic { .. } => "Constant::InvokeDynamic".fmt(fmt),
+        }
+    }
+}
+
+/// Tag values for the constant pool entries
+#[derive(Debug, Clone)]
+pub enum Tag {
+    Class,
+    FieldRef,
+    MethodRef,
+    InterfaceMethodRef,
+    String,
+    Integer,
+    Float,
+    Long,
+    Double,
+    NameAndType,
+    Utf8,
+    MethodHandle,
+    MethodType,
+    Dynamic,
+    InvokeDynamic,
+    Module,
+    Package,
+}
+
+impl Into<u8> for Tag {
+    fn into(self) -> u8 {
+        match self {
+            Tag::Class => 7u8,
+            Tag::FieldRef => 9u8,
+            Tag::MethodRef => 10u8,
+            Tag::InterfaceMethodRef => 11u8,
+            Tag::String => 8u8,
+            Tag::Integer => 3u8,
+            Tag::Float => 4u8,
+            Tag::Long => 5u8,
+            Tag::Double => 6u8,
+            Tag::NameAndType => 12u8,
+            Tag::Utf8 => 1u8,
+            Tag::MethodHandle => 15u8,
+            Tag::MethodType => 16u8,
+            Tag::Dynamic => 17u8,
+            Tag::InvokeDynamic => 18u8,
+            Tag::Module => 19u8,
+            Tag::Package => 20u8,
+        }
+    }
+}
+
+impl From<u8> for Tag {
+    fn from(tag: u8) -> Self {
+        match tag {
+            7 => Tag::Class,
+            9 => Tag::FieldRef,
+            10 => Tag::MethodRef,
+            11 => Tag::InterfaceMethodRef,
+            8 => Tag::String,
+            3 => Tag::Integer,
+            4 => Tag::Float,
+            5 => Tag::Long,
+            6 => Tag::Double,
+            12 => Tag::NameAndType,
+            1 => Tag::Utf8,
+            15 => Tag::MethodHandle,
+            16 => Tag::MethodType,
+            17 => Tag::Dynamic,
+            18 => Tag::InvokeDynamic,
+            19 => Tag::Module,
+            20 => Tag::Package,
+            _ => unreachable!(),
         }
     }
 }

@@ -1,6 +1,6 @@
-use crate::types::{BytesRef, ClassRef, FieldIdRef, MethodIdRef};
+use crate::types::{ClassRef, FieldIdRef, MethodIdRef};
 use classfile::access_flags::AccessFlags;
-use classfile::constant::ConstantPool;
+use classfile::{BytesRef, ConstantPoolRef};
 use parking_lot::ReentrantMutex;
 use std::fmt::{self, Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -57,7 +57,7 @@ pub struct Class {
     clint_mutex: Arc<Mutex<()>>,
     class_state: ClassState,
     pub access_flags: AccessFlags,
-    pub constant_pool: Arc<Box<ConstantPool>>,
+    pub constant_pool: ConstantPoolRef,
     // java/lang/String, etc
     pub name: BytesRef,
     // None for java/lang/Object

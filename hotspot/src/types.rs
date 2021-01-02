@@ -15,5 +15,3 @@ def_ptr!(LongArrayPtr, Vec<i64>);
 def_ptr!(ShortArrayPtr, Vec<i16>);
 def_ptr!(FloatArrayPtr, Vec<f32>);
 def_ptr!(DoubleArrayPtr, Vec<f64>);
-
-def_ref!(BytesRef, Vec<u8>);

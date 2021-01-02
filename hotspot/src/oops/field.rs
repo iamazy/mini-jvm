@@ -1,8 +1,9 @@
 use crate::basic_type::BasicType;
 use crate::oops::Oop;
-use crate::types::{BytesRef, ClassRef};
+use crate::types::ClassRef;
 use classfile::access_flags::AccessFlags;
 use classfile::field::FieldInfo;
+use classfile::BytesRef;
 
 pub struct FieldId {
     pub index: usize,

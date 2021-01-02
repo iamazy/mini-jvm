@@ -1,9 +1,10 @@
 #[allow(unused)]
 #[macro_use]
 extern crate bitflags;
-use crate::constant::ConstantPool;
+use crate::constant::Constant;
 use crate::error::Error;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use std::sync::Arc;
 
 pub mod access_flags;
 pub mod attribute;
@@ -18,6 +19,9 @@ pub mod package;
 
 pub const MAGIC: u32 = 0xCAFEBABE;
 
+pub type BytesRef = Arc<Vec<u8>>;
+pub type ConstantPoolRef = Arc<Vec<Constant>>;
+
 pub fn write_string(string: String, buf: &mut impl BufMut) -> usize {
     write_bytes(Bytes::from(string), buf)
 }
@@ -25,6 +29,14 @@ pub fn write_string(string: String, buf: &mut impl BufMut) -> usize {
 pub fn read_string(buf: &mut BytesMut) -> Result<String, Error> {
     String::from_utf8(read_bytes(buf)?.to_vec())
         .map_err(|e| Error::InvalidString(e.utf8_error().to_string()))
+}
+
+pub fn write_utf8(bytes: Vec<u8>, buf: &mut impl BufMut) -> usize {
+    write_bytes(Bytes::from(bytes), buf)
+}
+
+pub fn read_utf8(buf: &mut BytesMut) -> Result<Vec<u8>, Error> {
+    Ok(read_bytes(buf)?.to_vec())
 }
 
 pub fn write_bytes(bytes: Bytes, buf: &mut impl BufMut) -> usize {
@@ -50,5 +62,5 @@ pub trait TryInto<T, S>: Sized {
 
 pub trait TryFromCp<T>: Sized {
     type Error;
-    fn try_from_cp(value: T, constant_pool: &ConstantPool) -> Result<Self, Self::Error>;
+    fn try_from_cp(value: T, constant_pool: &ConstantPoolRef) -> Result<Self, Self::Error>;
 }

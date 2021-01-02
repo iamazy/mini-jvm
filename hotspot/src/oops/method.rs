@@ -1,7 +1,8 @@
 use crate::basic_type::BasicType;
-use crate::types::{BytesRef, ClassRef};
+use crate::types::ClassRef;
 use classfile::access_flags::AccessFlags;
 use classfile::method::MethodInfo;
+use classfile::BytesRef;
 use std::fmt::{self, Display, Formatter};
 
 pub struct MethodId {

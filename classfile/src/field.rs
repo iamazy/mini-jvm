@@ -1,7 +1,6 @@
 use crate::attribute::Attribute;
-use crate::constant::ConstantPool;
 use crate::error::Error;
-use crate::{TryFromCp, TryInto};
+use crate::{ConstantPoolRef, TryFromCp, TryInto};
 use bytes::{Buf, BufMut, BytesMut};
 
 #[derive(Debug, Clone)]
@@ -15,7 +14,10 @@ pub struct FieldInfo {
 impl TryFromCp<&mut BytesMut> for FieldInfo {
     type Error = Error;
 
-    fn try_from_cp(buf: &mut BytesMut, constant_pool: &ConstantPool) -> Result<Self, Self::Error> {
+    fn try_from_cp(
+        buf: &mut BytesMut,
+        constant_pool: &ConstantPoolRef,
+    ) -> Result<Self, Self::Error> {
         let access_flags = buf.get_u16();
         let name_index = buf.get_u16();
         let descriptor_index = buf.get_u16();
