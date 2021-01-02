@@ -1,13 +1,15 @@
-use crate::oops::symbol::Symbol;
+use crate::types::{BytesRef, ClassRef, FieldIdRef, MethodIdRef};
 use classfile::access_flags::AccessFlags;
+use classfile::constant::ConstantPool;
+use parking_lot::ReentrantMutex;
 use std::fmt::{self, Display, Formatter};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone)]
 pub struct ClassPtr(u64);
 
 impl ClassPtr {
-    pub fn new(class: Class) -> Arc<ClassPtr> {
+    pub fn new(class: &Class) -> ClassRef {
         let class = Box::new(class);
         let ptr = Box::into_raw(class) as u64;
         Arc::new(ClassPtr(ptr))
@@ -16,19 +18,52 @@ impl ClassPtr {
 
 impl Drop for ClassPtr {
     fn drop(&mut self) {
-        let _ = unsafe { Box::from_raw(self.0 as *mut Class) };
+        unsafe {
+            let _ = Box::from_raw(self.0 as *mut Class);
+        }
     }
 }
 
-#[derive(Debug, Clone)]
+impl ClassPtr {
+    fn raw_ptr(&self) -> *const Class {
+        self.0 as *const Class
+    }
+
+    fn mut_raw_ptr(&self) -> *mut Class {
+        self.0 as *mut Class
+    }
+}
+
+impl ClassPtr {
+    pub fn name(&self) -> &BytesRef {
+        let ptr = self.raw_ptr();
+        unsafe { &(*ptr).name }
+    }
+
+    pub fn get_class(&self) -> &Class {
+        let ptr = self.raw_ptr();
+        unsafe { &(*ptr) }
+    }
+
+    pub fn get_mut_class(&self) -> &mut Class {
+        let ptr = self.mut_raw_ptr();
+        unsafe { &mut (*ptr) }
+    }
+}
+
+#[derive(Debug)]
 pub struct Class {
+    mutex: ReentrantMutex<()>,
+    clint_mutex: Arc<Mutex<()>>,
+    class_state: ClassState,
     pub access_flags: AccessFlags,
+    pub constant_pool: Arc<Box<ConstantPool>>,
     // java/lang/String, etc
-    pub name: Arc<Symbol>,
+    pub name: BytesRef,
     // None for java/lang/Object
-    pub super_class: Option<Arc<ClassPtr>>,
+    pub super_class: Option<ClassRef>,
     // First subclass (None if none); sub_class.next_sibling() is next one
-    pub sub_class: Option<Arc<ClassPtr>>,
+    pub sub_class: Option<ClassRef>,
 }
 
 impl Class {
@@ -39,12 +74,20 @@ impl Class {
     //     None
     // }
 
-    pub fn is_subclass_of(&self, class: &Class) {
+    pub fn is_subclass_of(&self, _class: ClassRef) -> bool {
         unimplemented!()
     }
 
+    pub fn access_flags(&self) -> &AccessFlags {
+        &self.access_flags
+    }
+
+    pub fn is_public(&self) -> bool {
+        self.access_flags().is_public()
+    }
+
     pub fn is_final(&self) -> bool {
-        unimplemented!()
+        self.access_flags().is_final()
     }
 
     pub fn is_interface(&self) -> bool {
@@ -75,7 +118,7 @@ impl Class {
         unimplemented!()
     }
 
-    pub fn next_sibling(&self) -> Arc<ClassPtr> {
+    pub fn next_sibling(&self) -> ClassRef {
         unimplemented!()
     }
 
@@ -83,11 +126,11 @@ impl Class {
         unimplemented!()
     }
 
-    pub fn super_class(&self) -> Arc<ClassPtr> {
+    pub fn super_class(&self) -> ClassRef {
         unimplemented!()
     }
 
-    pub fn sub_class(&self) -> Arc<ClassPtr> {
+    pub fn sub_class(&self) -> ClassRef {
         unimplemented!()
     }
 
@@ -119,4 +162,18 @@ pub enum ClassState {
     FullyInitialized,
     // error happened during initialization
     InitializationError,
+}
+
+#[derive(Debug, Clone)]
+pub enum ClassType {
+    Instance,
+    Array,
+    ObjectArray,
+    TypeArray,
+}
+
+pub struct Instance {
+    pub class: ClassPtr,
+    pub methods: Vec<MethodIdRef>,
+    pub fields: Vec<FieldIdRef>,
 }

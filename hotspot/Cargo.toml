@@ -10,3 +10,5 @@ edition = "2018"
 classfile = { path = "../classfile" }
 zip = "0.5"
 hashbrown = "0.9"
+libc = "0.2"
+parking_lot = "0.11"

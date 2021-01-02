@@ -1,11 +1,13 @@
+use crate::types::{
+    BoolArrayPtr, ByteArrayPtr, CharArrayPtr, ClassRef, DoubleArrayPtr, FloatArrayPtr, IntArrayPtr,
+    LongArrayPtr, ShortArrayPtr,
+};
 use std::fmt::{self, Display, Formatter};
 use std::sync::Arc;
 
-pub mod array;
 pub mod class;
 pub mod field;
 pub mod method;
-pub mod symbol;
 
 // Ordinary Object Pointer
 #[derive(Debug, Clone)]
@@ -39,3 +41,29 @@ pub struct InstanceOop {}
 
 #[derive(Debug, Clone)]
 pub struct MirrorOop {}
+
+/// The layout of array Oops is:
+///
+///  markWord
+///  Klass*    // 32 bits if compressed but declared 64 in LP64.
+///  length    // shares klass memory or allocated after declared fields.
+#[derive(Debug, Clone)]
+pub struct ArrayOop {
+    pub class: ClassRef,
+    pub elements: Vec<Oop>,
+}
+
+#[derive(Debug, Clone)]
+pub enum TypeArrayOop {
+    Char(CharArrayPtr),
+    Boolean(BoolArrayPtr),
+    Byte(ByteArrayPtr),
+    Int(IntArrayPtr),
+    Long(LongArrayPtr),
+    Short(ShortArrayPtr),
+    Float(FloatArrayPtr),
+    Double(DoubleArrayPtr),
+}
+
+#[derive(Debug, Clone)]
+pub struct ObjArrayOop {}

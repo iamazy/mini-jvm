@@ -1,24 +1,26 @@
 use crate::basic_type::BasicType;
-use crate::oops::class::ClassPtr;
-use crate::oops::symbol::Symbol;
+use crate::types::{BytesRef, ClassRef};
 use classfile::access_flags::AccessFlags;
-use classfile::constant::ConstantPool;
 use classfile::method::MethodInfo;
 use std::fmt::{self, Display, Formatter};
 
-#[derive(Debug, Clone)]
-pub struct Method<'a> {
-    pub access_flags: AccessFlags,
-    // method holder
-    pub class: ClassPtr,
-    // offset in class method list
-    pub offset: usize,
-    pub method_info: &'a MethodInfo,
+pub struct MethodId {
+    pub index: usize,
+    pub method: Method,
 }
 
-impl<'a> Method<'a> {
-    pub fn class_name(&self) -> &'a String {
-        unimplemented!()
+pub struct Method {
+    pub access_flags: AccessFlags,
+    // method holder
+    pub class: ClassRef,
+    // offset in class method list
+    pub offset: usize,
+    pub method_info: MethodInfo,
+}
+
+impl Method {
+    pub fn class_name(&self) -> &BytesRef {
+        self.class.name()
     }
 
     pub fn return_type(&self) -> BasicType {
@@ -116,7 +118,7 @@ impl<'a> Method<'a> {
     }
 
     // name
-    pub fn name(&self) -> &'a Symbol {
+    pub fn name(&self) -> BytesRef {
         unimplemented!()
     }
 
@@ -124,7 +126,7 @@ impl<'a> Method<'a> {
         self.method_info.name_index
     }
 
-    pub fn signature(&self) -> &'a Symbol {
+    pub fn signature(&self) -> BytesRef {
         unimplemented!()
     }
 
@@ -133,7 +135,7 @@ impl<'a> Method<'a> {
     }
 
     // generics support
-    pub fn generic_signature(&self) -> &'a Symbol {
+    pub fn generic_signature(&self) -> BytesRef {
         unimplemented!()
     }
 
@@ -170,9 +172,13 @@ impl<'a> Method<'a> {
             None => 0,
         };
     }
+
+    pub fn size_of_parameters(&self) -> usize {
+        unimplemented!()
+    }
 }
 
-impl<'a> Display for Method<'a> {
+impl Display for Method {
     // print method code
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         unimplemented!()

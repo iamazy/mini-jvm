@@ -10,7 +10,6 @@ pub mod attribute;
 pub mod class_file;
 pub mod class_reader;
 pub mod constant;
-pub mod descriptor;
 pub mod error;
 pub mod field;
 pub mod method;
