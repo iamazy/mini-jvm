@@ -23,7 +23,7 @@ pub fn add_path(path: &str) {
 
 pub fn add_paths(path: &str) {
     let mut cpm = CLASS_PATH_MANAGER.write().unwrap();
-    cpm.add_class_pats(path);
+    cpm.add_class_paths(path);
 }
 
 #[derive(Debug, Clone)]
@@ -72,7 +72,7 @@ impl ClassPathManager {
         Ok(())
     }
 
-    pub fn add_class_pats(&mut self, path: &str) {
+    pub fn add_class_paths(&mut self, path: &str) {
         path.split(PATH_SEP).for_each(|p| {
             if let Err(e) = self.add_class_path(p) {
                 error!("add class path error, path = {}, e = {:?}", p, e);
