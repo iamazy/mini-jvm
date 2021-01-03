@@ -8,6 +8,8 @@ use bytes::{Buf, BufMut, BytesMut};
 use std::convert::TryFrom;
 use std::sync::Arc;
 
+pub type ClassFileRef = Arc<ClassFile>;
+
 #[derive(Debug, Clone)]
 pub struct ClassFile {
     pub magic: u32,

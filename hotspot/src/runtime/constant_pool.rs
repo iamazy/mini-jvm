@@ -8,18 +8,34 @@ enum ConstantCacheType {
     Method(MethodIdRef),
 }
 
-pub struct ConstantPoolCache<'a> {
-    constant_pool: &'a ConstantPoolRef,
+impl ConstantCacheType {
+    fn get_field(&self) -> FieldIdRef {
+        match self {
+            ConstantCacheType::Field(fir) => fir.clone(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn get_method(&self) -> MethodIdRef {
+        match self {
+            ConstantCacheType::Method(mir) => mir.clone(),
+            _ => unreachable!(),
+        }
+    }
+}
+
+pub struct ConstantPoolCache {
+    constant_pool: ConstantPoolRef,
     cache: RefCell<HashMap<usize, ConstantCacheType>>,
 }
 
-impl<'a> ConstantPoolCache<'a> {
-    pub fn new(constant_pool: &'a ConstantPoolRef) -> Self {
+impl ConstantPoolCache {
+    pub fn new(constant_pool: ConstantPoolRef) -> Self {
         Self {
             constant_pool,
             cache: RefCell::new(HashMap::default()),
         }
     }
 
-    pub fn get_field(&self, idx: usize) {}
+    pub fn get_field(&self, _idx: usize) {}
 }

@@ -17,9 +17,7 @@ pub fn put(key: &[u8], class: ClassRef) {
 
 pub fn find(key: &[u8]) -> Option<ClassRef> {
     debug_assert!(!key.contains(&b'.'));
-    let key = unsafe {
-        std::str::from_utf8_unchecked(key)
-    };
+    let key = unsafe { std::str::from_utf8_unchecked(key) };
     let dict = SYS_DIC.lock().unwrap();
     dict.get(key).cloned()
 }

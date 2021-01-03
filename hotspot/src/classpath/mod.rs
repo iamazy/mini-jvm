@@ -1,12 +1,12 @@
 #[allow(dead_code)]
 use crate::sys::{FILE_SEP, PATH_SEP};
+use log::{error, trace};
 use once_cell::sync::Lazy;
 use std::fs::File;
 use std::io::{Error, ErrorKind, Read};
 use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock};
 use zip::ZipArchive;
-use log::{error, trace};
 
 static CLASS_PATH_MANAGER: Lazy<RwLock<ClassPathManager>> =
     Lazy::new(|| RwLock::new(ClassPathManager::new()));

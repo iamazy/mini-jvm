@@ -1,5 +1,7 @@
 pub struct Stack<T> {
     head: Link<T>,
+    size: usize,
+    max_size: usize,
 }
 
 type Link<T> = Option<Box<Node<T>>>;
@@ -10,19 +12,37 @@ struct Node<T> {
 }
 
 impl<T> Stack<T> {
-    pub fn new() -> Self {
-        Stack { head: None }
+    pub fn new(size: usize) -> Self {
+        Stack {
+            head: None,
+            size: 0,
+            max_size: size,
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        self.size
     }
 
     pub fn push(&mut self, elem: T) {
-        let new_node = Box::new(Node {
-            elem,
-            next: self.head.take(),
-        });
-        self.head = Some(new_node);
+        if self.size < self.max_size {
+            let new_node = Box::new(Node {
+                elem,
+                next: self.head.take(),
+            });
+            self.head = Some(new_node);
+            self.size += 1;
+        } else {
+            panic!(
+                "Cause stackOverflow, current size: {}, max size: {}",
+                self.size, self.max_size
+            );
+        }
     }
 
     pub fn pop(&mut self) -> Option<T> {
+        assert!(self.size > 0);
+        self.size -= 1;
         self.head.take().map(|node| {
             self.head = node.next;
             node.elem
