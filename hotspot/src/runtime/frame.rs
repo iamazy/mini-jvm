@@ -57,6 +57,11 @@ impl Frame {
     }
 
     #[inline]
+    pub fn push_nop(&mut self) {
+        self.data_area.stack.borrow_mut().push(Slot::Nop)
+    }
+
+    #[inline]
     pub fn push_ref(&mut self, v: oops::Oop) {
         if let oops::Oop::Reference(..) = &v {
             self.data_area.stack.borrow_mut().push(Slot::Oop(v));
