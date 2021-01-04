@@ -81,7 +81,6 @@ pub struct Class {
 }
 
 impl Class {
-
     pub fn get_name(&self) -> BytesRef {
         self.name.clone()
     }
@@ -146,7 +145,7 @@ impl Class {
         self.super_class.clone()
     }
 
-    pub fn sub_classes(&self) -> Option<Vec<ClassRef>>  {
+    pub fn sub_classes(&self) -> Option<Vec<ClassRef>> {
         self.sub_classes.clone()
     }
 
@@ -158,7 +157,7 @@ impl Class {
         match &self.instance {
             Instance::Instance(_) => InstanceType::ObjectInstance,
             Instance::ObjectArray(_) => InstanceType::ObjectArrayInstance,
-            Instance::TypeArray(_) => InstanceType::TypeArrayInstance
+            Instance::TypeArray(_) => InstanceType::TypeArrayInstance,
         }
     }
 }
