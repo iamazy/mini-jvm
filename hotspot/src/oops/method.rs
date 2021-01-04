@@ -4,6 +4,7 @@ use classfile::access_flags::AccessFlags;
 use classfile::method::MethodInfo;
 use classfile::BytesRef;
 use std::fmt::{self, Display, Formatter};
+use std::sync::Arc;
 
 pub struct MethodId {
     pub index: usize,
@@ -161,16 +162,23 @@ impl Method {
     }
 
     pub fn max_locals(&self) -> usize {
-        return match self.method_info.get_code() {
+        return match self.method_info.get_code_attr() {
             Some(code) => code.max_locals as usize,
             None => 0,
         };
     }
 
     pub fn max_stack(&self) -> usize {
-        return match self.method_info.get_code() {
+        return match self.method_info.get_code_attr() {
             Some(code) => code.max_stack as usize,
             None => 0,
+        };
+    }
+
+    pub fn get_code(&self) -> BytesRef {
+        return match self.method_info.get_code_attr() {
+            Some(code) => code.code.clone(),
+            None => Arc::new(vec![]),
         };
     }
 
