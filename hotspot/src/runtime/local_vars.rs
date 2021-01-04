@@ -26,6 +26,7 @@ impl LocalVars {
 
     pub fn set_long(&mut self, pos: usize, value: i64) {
         self.slots[pos - 1] = Slot::Oop(Oop::Long(value));
+        self.slots[pos] = Slot::Nop;
     }
 
     pub fn get_long(&self, pos: usize) -> i64 {
@@ -48,6 +49,7 @@ impl LocalVars {
 
     pub fn set_double(&mut self, pos: usize, value: f64) {
         self.slots[pos - 1] = Slot::Oop(Oop::Double(value));
+        self.slots[pos] = Slot::Nop;
     }
 
     pub fn get_double(&self, pos: usize) -> f64 {
