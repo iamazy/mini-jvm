@@ -2,7 +2,7 @@
 
 use crate::constant::get_utf8;
 use crate::error::Error;
-use crate::{ConstantPoolRef, TryFromCp, TryInto, BytesRef};
+use crate::{BytesRef, ConstantPoolRef, TryFromCp, TryInto};
 use bytes::{Buf, BufMut, BytesMut};
 use std::convert::TryFrom;
 use std::sync::Arc;
@@ -408,7 +408,7 @@ pub enum AttributeType {
 pub struct CodeAttribute {
     pub max_stack: u16,
     pub max_locals: u16,
-    pub code:BytesRef,
+    pub code: BytesRef,
     pub exception_table: Vec<Exception>,
     pub attributes: Vec<Attribute>,
 }
