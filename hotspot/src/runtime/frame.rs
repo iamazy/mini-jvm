@@ -17,7 +17,6 @@ pub struct Frame {
 }
 
 impl Frame {
-
     pub fn new(mir: MethodIdRef, frame_id: usize) -> Self {
         let class = mir.method.class.clone();
         let constant_pool = {
