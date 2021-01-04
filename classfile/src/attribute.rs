@@ -2,9 +2,10 @@
 
 use crate::constant::get_utf8;
 use crate::error::Error;
-use crate::{ConstantPoolRef, TryFromCp, TryInto};
+use crate::{ConstantPoolRef, TryFromCp, TryInto, BytesRef};
 use bytes::{Buf, BufMut, BytesMut};
 use std::convert::TryFrom;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct Attribute {
@@ -407,7 +408,7 @@ pub enum AttributeType {
 pub struct CodeAttribute {
     pub max_stack: u16,
     pub max_locals: u16,
-    pub code: Vec<u8>,
+    pub code:BytesRef,
     pub exception_table: Vec<Exception>,
     pub attributes: Vec<Attribute>,
 }
@@ -439,7 +440,7 @@ impl TryFromCp<&mut BytesMut> for CodeAttribute {
         Ok(CodeAttribute {
             max_stack,
             max_locals,
-            code,
+            code: Arc::new(code),
             exception_table,
             attributes,
         })
@@ -459,7 +460,7 @@ where
         let code_length = self.code.len() as u32;
         buf.put_u32(code_length);
         len += 8;
-        for byte in &self.code {
+        for byte in &*self.code {
             buf.put_u8(*byte);
             len += 1;
         }
