@@ -4,6 +4,7 @@ use crate::runtime::{DataArea, Slot};
 use crate::types::MethodIdRef;
 use classfile::{BytesRef, ConstantPoolRef};
 use std::sync::atomic::AtomicUsize;
+use std::sync::Arc;
 
 pub struct Frame {
     pub id: usize,
@@ -16,6 +17,25 @@ pub struct Frame {
 }
 
 impl Frame {
+
+    pub fn new(mir: MethodIdRef, frame_id: usize) -> Self {
+        let class = mir.method.class.clone();
+        let constant_pool = {
+            let instance = class.get_instance();
+            instance.class.get_class().constant_pool.clone()
+        };
+        let data_area = DataArea::new(mir.method.max_locals(), mir.method.max_stack());
+        Self {
+            id: frame_id,
+            pc: AtomicUsize::new(0),
+            stack_pointer: 0,
+            constant_pool,
+            method: mir.clone(),
+            code: mir.method.get_code().clone(),
+            data_area,
+        }
+    }
+
     #[inline]
     pub fn push_int(&mut self, v: i32) {
         self.data_area
