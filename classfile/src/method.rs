@@ -15,7 +15,6 @@ pub struct MethodInfo {
 }
 
 impl MethodInfo {
-
     pub fn get_code_attr(&self) -> Option<&CodeAttribute> {
         return match self.code_attr_index {
             Some(code_index) => {
