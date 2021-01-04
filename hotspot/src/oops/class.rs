@@ -81,12 +81,10 @@ pub struct Class {
 }
 
 impl Class {
-    // pub fn get_name<'a>(&self, constant_pool: &'a Vec<Constant>) -> Option<&'a String>{
-    //     if let Constant::Class { name_index } = self {
-    //         return get_utf8(constant_pool, *name_index as usize)
-    //     }
-    //     None
-    // }
+
+    pub fn get_name(&self) -> BytesRef {
+        self.name.clone()
+    }
 
     pub fn is_subclass_of(&self, class: ClassRef) -> bool {
         match &self.sub_classes {
@@ -148,12 +146,20 @@ impl Class {
         self.super_class.clone()
     }
 
-    pub fn sub_classes(&self) -> Option<Vec<ClassRef>> {
+    pub fn sub_classes(&self) -> Option<Vec<ClassRef>>  {
         self.sub_classes.clone()
     }
 
     pub fn initialize(&self) {
         unimplemented!()
+    }
+
+    pub fn get_instance_type(&self) -> InstanceType {
+        match &self.instance {
+            Instance::Instance(_) => InstanceType::ObjectInstance,
+            Instance::ObjectArray(_) => InstanceType::ObjectArrayInstance,
+            Instance::TypeArray(_) => InstanceType::TypeArrayInstance
+        }
     }
 }
 
@@ -189,10 +195,10 @@ pub enum Instance {
 }
 
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
-pub enum ClassKindType {
-    Instance,
-    ObjectArray,
-    TypeArray,
+pub enum InstanceType {
+    ObjectInstance,
+    ObjectArrayInstance,
+    TypeArrayInstance,
 }
 
 pub struct ObjectInstance {
