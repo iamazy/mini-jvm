@@ -66,4 +66,4 @@ pub enum TypeArrayOop {
 }
 
 #[derive(Debug, Clone)]
-pub struct ObjArrayOop {}
+pub struct ObjectArrayOop {}
