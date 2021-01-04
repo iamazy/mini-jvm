@@ -15,7 +15,8 @@ pub struct MethodInfo {
 }
 
 impl MethodInfo {
-    pub fn get_code(&self) -> Option<&CodeAttribute> {
+
+    pub fn get_code_attr(&self) -> Option<&CodeAttribute> {
         return match self.code_attr_index {
             Some(code_index) => {
                 let attr_type = &self.attributes[code_index].attr_type;
