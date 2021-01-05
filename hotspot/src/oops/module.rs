@@ -1,4 +1,6 @@
-use crate::BytesRef;
+use classfile::BytesRef;
+use std::sync::Arc;
+use crate::oops::Oop;
 
 /// A ModuleEntry describes a module that has been defined by a call to JVM_DefineModule.
 /// It contains:
@@ -11,6 +13,7 @@ use crate::BytesRef;
 ///
 /// The Mutex Module_lock is shared between ModuleEntry and PackageEntry, to lock either
 /// data structure.
+#[derive(Default)]
 pub struct ModuleEntry {
     // module version number
     pub version: BytesRef,
@@ -25,6 +28,7 @@ pub struct ModuleEntry {
     pub is_open: bool,
     // whether the module is patched via --patch-module
     pub is_patched: bool,
+    pub next: Option<Arc<ModuleEntry>>,
 }
 
 impl ModuleEntry {
@@ -70,7 +74,10 @@ impl ModuleEntry {
     }
 
     pub fn can_read_all_unnamed(&self) -> bool {
-        assert!(self.is_named() || self.can_read_all_unnamed, "unnamed modules can always read all unnamed modules");
+        assert!(
+            self.is_named() || self.can_read_all_unnamed,
+            "unnamed modules can always read all unnamed modules"
+        );
         self.can_read_all_unnamed
     }
 
@@ -93,6 +100,13 @@ impl ModuleEntry {
     pub fn delete_unnamed_module(&self) {
         unimplemented!()
     }
+
+    pub fn next(&self) -> Option<Arc<ModuleEntry>> {
+        match &self.next {
+            Some(ref module_ptr) => Some((*module_ptr).clone()),
+            None => None,
+        }
+    }
 }
 
 pub struct ModuleEntryTable {
@@ -100,7 +114,6 @@ pub struct ModuleEntryTable {
 }
 
 impl ModuleEntryTable {
-
     pub fn add_entry(&mut self, entry: ModuleEntry) {
         self.entries.push(entry);
     }
@@ -108,6 +121,4 @@ impl ModuleEntryTable {
     pub fn entry_size(&self) -> usize {
         self.entries.len()
     }
-
-
 }

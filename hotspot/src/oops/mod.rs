@@ -1,13 +1,16 @@
+use std::fmt::{self, Display, Formatter};
+use std::sync::Arc;
+
 use crate::types::{
     BoolArrayPtr, ByteArrayPtr, CharArrayPtr, ClassRef, DoubleArrayPtr, FloatArrayPtr, IntArrayPtr,
     LongArrayPtr, ShortArrayPtr,
 };
-use std::fmt::{self, Display, Formatter};
-use std::sync::Arc;
 
 pub mod class;
 pub mod field;
 pub mod method;
+pub mod module;
+pub mod package;
 
 // Ordinary Object Pointer
 #[derive(Debug, Clone)]

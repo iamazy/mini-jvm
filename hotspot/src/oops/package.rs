@@ -1,6 +1,6 @@
-use crate::module::{ModuleEntryTable, ModuleEntry};
+use classfile::BytesRef;
 use std::sync::Arc;
-use crate::BytesRef;
+use crate::oops::module::ModuleEntry;
 
 /// A PackageEntry basically represents a Java package.  It contains:
 ///   - Symbol* containing the package's name.
@@ -59,22 +59,22 @@ pub struct PackageEntry {
     pub module: Arc<ModuleEntry>,
     // Indicates if package is exported unqualifiedly or to all unnamed. Access to
     // this field is protected by the Module_lock.
-    pub export_flags: u16,
+    pub export_flags: i32,
     // Used to indicate for packages with classes loaded by the boot loader that
     // a class in that package has been loaded.  And, for packages with classes
     // loaded by the boot loader from -Xbootclasspath/a in an unnamed module, it
     // indicates from which class path entry.
-    pub classpath_index: u16,
-    pub must_walk_exports: bool
+    pub classpath_index: i16,
+    pub must_walk_exports: bool,
+    pub next: Option<Arc<PackageEntry>>,
 }
 
 impl PackageEntry {
-
     pub fn name(&self) -> BytesRef {
         unimplemented!()
     }
 
-    pub fn classpath_index(&self) -> u16 {
+    pub fn classpath_index(&self) -> i16 {
         self.classpath_index
     }
 
@@ -85,15 +85,20 @@ impl PackageEntry {
     pub fn in_unnamed_module(&self) -> bool {
         !self.module.is_named()
     }
-}
 
+    pub fn next(&self) -> Option<Arc<PackageEntry>> {
+        match &self.next {
+            Some(ref package_ptr) => Some((*package_ptr).clone()),
+            None => None,
+        }
+    }
+}
 
 pub struct PackageEntryTable {
     pub entries: Vec<PackageEntry>,
 }
 
 impl PackageEntryTable {
-
     pub fn add_entry(&mut self, entry: PackageEntry) {
         self.entries.push(entry);
     }
