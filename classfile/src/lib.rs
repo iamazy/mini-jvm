@@ -1,10 +1,13 @@
 #[allow(unused)]
 #[macro_use]
 extern crate bitflags;
+
+use std::sync::Arc;
+
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+
 use crate::constant::Constant;
 use crate::error::Error;
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use std::sync::Arc;
 
 pub mod access_flags;
 pub mod attribute;
@@ -14,8 +17,6 @@ pub mod constant;
 pub mod error;
 pub mod field;
 pub mod method;
-pub mod module;
-pub mod package;
 
 pub const MAGIC: u32 = 0xCAFEBABE;
 
